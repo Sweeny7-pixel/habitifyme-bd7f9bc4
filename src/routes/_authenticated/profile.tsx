@@ -183,7 +183,7 @@ function ProfilePage() {
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
       {/* Details */}
       <section>
