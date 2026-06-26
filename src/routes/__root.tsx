@@ -77,9 +77,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "GymBuddy — AI gym coach for budget gym goers" },
+      { title: "healthifyme— AI gym coach for budget gym goers" },
       { name: "description", content: "Walk into any budget gym with a plan. AI-generated weekly workouts, demo videos, and adaptive check-ins." },
       { name: "theme-color", content: "#0A0C0F" },
+      { property: "og:title", content: "healthifyme— AI gym coach for budget gym goers" },
+      { name: "twitter:title", content: "healthifyme— AI gym coach for budget gym goers" },
+      { property: "og:description", content: "Walk into any budget gym with a plan. AI-generated weekly workouts, demo videos, and adaptive check-ins." },
+      { name: "twitter:description", content: "Walk into any budget gym with a plan. AI-generated weekly workouts, demo videos, and adaptive check-ins." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8b7b2be8-77c9-47c8-8194-f2e29b22078c/id-preview-c68e1e66--ccccec83-87a7-4329-8c25-c999fd45bab1.lovable.app-1782478232316.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8b7b2be8-77c9-47c8-8194-f2e29b22078c/id-preview-c68e1e66--ccccec83-87a7-4329-8c25-c999fd45bab1.lovable.app-1782478232316.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
