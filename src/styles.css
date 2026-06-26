@@ -518,3 +518,191 @@
 @utility clay-day-btn-completed { @apply glass-day-btn-completed; }
 @utility clay-nav-item { @apply glass-nav-item; }
 @utility clay-nav-item-active { @apply glass-nav-item-active; }
+
+/* ===========================================================
+   STEP 2–4 UTILITIES — inputs, halos, sheets, badges
+   =========================================================== */
+
+@utility glass-input {
+  width: 100%;
+  background: var(--glass-1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+
+  &::placeholder { color: var(--text-muted); }
+  &:focus {
+    border-color: var(--neon-orange);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.20);
+    background: var(--glass-2);
+  }
+  &[type="number"]::-webkit-outer-spin-button,
+  &[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  &[type="number"] { -moz-appearance: textfield; }
+}
+
+@utility day-row {
+  transition: background-color .15s ease;
+  &:hover { background-color: rgba(255, 255, 255, 0.04); }
+}
+
+@utility flame-halo {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  animation: flame-pulse 2.4s ease-out infinite;
+}
+@keyframes flame-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(255,107,53,0.55); }
+  70%  { box-shadow: 0 0 0 14px rgba(255,107,53,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(255,107,53,0);   }
+}
+
+@utility glass-macro-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@utility protein-highlight {
+  border-left: 2px solid var(--neon-amber);
+  background: rgba(255, 184, 48, 0.08);
+  border-radius: 0 12px 12px 0;
+  padding: 12px 14px;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@utility allergy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 70, 70, 0.12);
+  border: 1px solid rgba(255, 70, 70, 0.30);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FF6B6B;
+  cursor: pointer;
+  transition: background-color .15s ease;
+  &:hover { background: rgba(255, 70, 70, 0.20); }
+}
+
+@utility weekly-progress-fill {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
+  box-shadow: 0 0 12px rgba(166, 123, 255, 0.35);
+}
+
+@utility glass-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background-color: rgba(0, 0, 0, 0.60);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+@utility glass-bottom-sheet {
+  width: 100%;
+  max-width: 375px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: rgba(15, 19, 24, 0.95);
+  backdrop-filter: blur(32px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.50);
+  padding: 20px 20px 28px;
+  color: var(--text-primary);
+}
+
+@utility glass-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 auto 12px;
+}
+
+@utility glass-sheet-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--glass-1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: background-color .15s ease, color .15s ease;
+  &:hover { background: var(--glass-2); color: var(--text-primary); }
+}
+
+@utility profile-radial-glow {
+  position: relative;
+  background-image:
+    radial-gradient(ellipse at top left, rgba(255, 107, 53, 0.20), transparent 60%),
+    linear-gradient(180deg, var(--glass-2), var(--glass-1));
+}
+
+@utility profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--neon-orange), var(--neon-purple));
+  border: 2.5px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 24px rgba(255, 107, 53, 0.40);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+@utility achievement-badge-unlocked {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--glass-3);
+  border: 1px solid rgba(166, 123, 255, 0.30);
+  box-shadow: 0 0 12px rgba(166, 123, 255, 0.50);
+  display: grid;
+  place-items: center;
+  color: var(--neon-purple);
+  transition: transform .15s ease;
+  cursor: pointer;
+  &:hover { transform: scale(1.05); }
+}
+
+@utility achievement-badge-locked {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--glass-1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  opacity: 0.35;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
