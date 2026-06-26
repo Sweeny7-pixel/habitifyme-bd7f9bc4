@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getDay, logExercise, completeWorkoutDay } from "@/lib/gym.functions";
-import { CheckCircle2, Circle, Loader2, ChevronDown, X, ArrowLeft, Play, Target } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, ChevronDown, X, ArrowLeft, Play, Target, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/day/$dayId")({
@@ -82,17 +82,17 @@ function DayPage() {
   if (q.isLoading) {
     return (
       <div className="flex justify-center pt-16">
-        <Loader2 className="h-6 w-6 animate-spin text-[color:var(--clay-orange)]" />
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--neon-orange)]" />
       </div>
     );
   }
   if (q.isError || !q.data || !q.data.day) {
     return (
       <div className="space-y-4 pt-8 text-center">
-        <p className="text-sm text-[color:var(--text-mid)]">
+        <p className="text-sm text-[var(--text-secondary)]">
           This workout is no longer available. Your plan may have been regenerated.
         </p>
-        <button onClick={() => navigate({ to: "/home" })} className="clay-btn max-w-xs mx-auto">
+        <button onClick={() => navigate({ to: "/home" })} className="glass-btn max-w-xs mx-auto">
           Back to home
         </button>
       </div>
@@ -109,14 +109,14 @@ function DayPage() {
     <div className="space-y-4 pt-2 pb-32">
       <button
         onClick={() => navigate({ to: "/home" })}
-        className="flex items-center gap-1 text-xs font-semibold text-[color:var(--text-mid)]"
+        className="flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)]"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Back
       </button>
 
       <div>
-        <span className="clay-pill">Day {day.day_index}</span>
-        <h1 className="mt-2 text-[22px] font-extrabold tracking-tight text-[color:var(--text-dark)] leading-tight">
+        <span className="glass-pill">Day {day.day_index}</span>
+        <h1 className="mt-2 text-[22px] font-extrabold tracking-tight text-[var(--text-primary)] leading-tight">
           {day.title}
         </h1>
         <div className="mt-2 inline-flex items-center gap-1.5">
@@ -124,15 +124,15 @@ function DayPage() {
         </div>
       </div>
 
-      <div className="clay-card">
+      <div className="glass-card">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-bold text-[color:var(--text-dark)]">
+          <span className="font-bold text-[var(--text-primary)]">
             {doneCount}/{exercises.length} exercises logged
           </span>
-          <span className="text-[color:var(--clay-orange)] font-extrabold">{pct}%</span>
+          <span className="text-[var(--neon-orange)] font-extrabold">{pct}%</span>
         </div>
         <div className="prog-bar mt-2">
-          <div className="h-full bg-[color:var(--clay-orange)] transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-full bg-[var(--neon-orange)] shadow-[0_0_12px_var(--neon-orange-glow)] transition-all" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
@@ -145,27 +145,27 @@ function DayPage() {
             <button
               key={idx}
               onClick={() => setActiveIdx(idx)}
-              className="clay-card flex w-full p-0 overflow-hidden text-left"
+              className="glass-card flex w-full p-0 overflow-hidden text-left"
             >
               {img ? (
                 <img
                   src={img}
                   alt={ex.name}
                   loading="lazy"
-                  className="h-24 w-24 shrink-0 object-cover bg-white"
+                  className="h-24 w-24 shrink-0 object-cover bg-white/5"
                 />
               ) : (
-                <div className="h-24 w-24 shrink-0 bg-[color:var(--page-bg)]" />
+                <div className="h-24 w-24 shrink-0 bg-white/5" />
               )}
               <div className="flex flex-1 items-start gap-2 px-3 py-2.5 min-w-0">
                 {done ? (
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--clay-green)]" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--neon-green)]" />
                 ) : (
-                  <Circle className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--text-light)]" />
+                  <Circle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-bold text-[color:var(--text-dark)]">{ex.name}</p>
-                  <p className="text-[11px] text-[color:var(--text-mid)] mt-0.5">
+                  <p className="truncate text-sm font-bold text-[var(--text-primary)]">{ex.name}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
                     {ex.sets} × {ex.reps} · rest {ex.rest_seconds}s
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1">
@@ -175,14 +175,15 @@ function DayPage() {
                     {ex.equipment && <span className="muscle-pill capitalize">{ex.equipment}</span>}
                   </div>
                   {log && log.sets_completed > 0 && (
-                    <p className="mt-1.5 text-[11px] font-bold text-[color:var(--clay-green)]">
+                    <p className="mt-1.5 text-[11px] font-bold text-[var(--neon-green)]">
                       Logged: {log.sets_completed} sets{log.weight_kg ? ` @ ${log.weight_kg}kg` : ""}
                     </p>
                   )}
                   {log?.skipped && (
-                    <p className="mt-1.5 text-[11px] font-bold text-[color:var(--clay-amber)]">Skipped</p>
+                    <p className="mt-1.5 text-[11px] font-bold text-[var(--neon-amber)]">Skipped</p>
                   )}
                 </div>
+                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
               </div>
             </button>
           );
@@ -195,9 +196,12 @@ function DayPage() {
           <button
             onClick={() => completeMut.mutate()}
             disabled={completeMut.isPending || !!day.completed_at}
-            className={`clay-btn ${day.completed_at ? "clay-btn-green" : ""}`}
+            className={`glass-btn ${day.completed_at ? "glass-btn-green" : ""}`}
+            data-complete={day.completed_at ? "true" : "false"}
           >
-            {day.completed_at ? "Workout complete ✓" : completeMut.isPending ? "Saving…" : "Finish workout"}
+            {day.completed_at ? (
+              <><CheckCircle2 className="h-4 w-4" /> Workout complete</>
+            ) : completeMut.isPending ? "Saving…" : "Finish workout"}
           </button>
         </div>
       </div>
@@ -292,27 +296,24 @@ function ExerciseSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="max-h-[90vh] w-full max-w-[375px] overflow-y-auto rounded-t-[28px] bg-white p-5 pb-7"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-[color:var(--clay-border)]" />
+    <div className="glass-modal-overlay" onClick={onClose}>
+      <div className="glass-bottom-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="glass-sheet-handle" />
         <div className="mb-3 flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="text-base font-extrabold text-[color:var(--text-dark)] truncate">{exercise.name}</h3>
-            <p className="text-xs text-[color:var(--text-mid)] mt-0.5">
+            <h3 className="text-base font-extrabold text-[var(--text-primary)] truncate">{exercise.name}</h3>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
               {exercise.sets} × {exercise.reps} · rest {exercise.rest_seconds}s
             </p>
           </div>
-          <button onClick={onClose} className="grid h-7 w-7 place-items-center rounded-full bg-[color:var(--page-bg)] border-[1.5px] border-[color:var(--clay-border)] text-[color:var(--text-mid)] shrink-0">
+          <button onClick={onClose} className="glass-sheet-close" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {images.length > 0 && (
           <div className="mb-3">
-            <div className="aspect-video overflow-hidden rounded-2xl bg-white border-[1.5px] border-[color:var(--clay-border)]">
+            <div className="aspect-video overflow-hidden rounded-2xl bg-white/5 border border-white/10">
               <img
                 src={images[imgIdx % images.length]}
                 alt={`${exercise.name} demo ${imgIdx + 1}`}
@@ -326,7 +327,7 @@ function ExerciseSheet({
                     key={i}
                     onClick={() => setImgIdx(i)}
                     className={`h-1.5 w-6 rounded-full transition ${
-                      i === imgIdx ? "bg-[color:var(--clay-orange)]" : "bg-[color:var(--clay-border)]"
+                      i === imgIdx ? "bg-[var(--neon-orange)]" : "bg-white/15"
                     }`}
                     aria-label={`Image ${i + 1}`}
                   />
@@ -344,8 +345,8 @@ function ExerciseSheet({
           {exercise.level && <span className="muscle-pill capitalize">{exercise.level}</span>}
         </div>
 
-        <div className="mb-3 clay-card clay-card-soft-orange text-xs text-[color:var(--clay-orange-shadow)]">
-          <span className="font-extrabold">Form cue: </span>
+        <div className="mb-3 glass-card glass-card-orange border-l-2 border-l-[var(--neon-orange)] text-xs text-[var(--text-primary)]">
+          <span className="font-extrabold text-[var(--neon-orange)]">Form cue: </span>
           {exercise.form_cue}
         </div>
 
@@ -353,23 +354,23 @@ function ExerciseSheet({
           <button
             type="button"
             onClick={openYouTube}
-            className="clay-btn clay-btn-outline clay-btn-sm w-full mb-3"
+            className="glass-btn glass-btn-ghost glass-btn-sm w-full mb-3"
           >
             <Play className="h-3.5 w-3.5" /> Watch form video on YouTube
           </button>
         )}
 
         {instructions.length > 0 && (
-          <div className="mb-4 clay-card p-0 overflow-hidden">
+          <div className="mb-4 glass-card p-0 overflow-hidden">
             <button
               onClick={() => setShowInstr((v) => !v)}
-              className="flex w-full items-center justify-between px-4 py-3 text-xs font-extrabold text-[color:var(--text-dark)]"
+              className="flex w-full items-center justify-between px-4 py-3 text-xs font-extrabold text-[var(--text-primary)]"
             >
               <span>Instructions ({instructions.length})</span>
-              <ChevronDown className={`h-4 w-4 transition ${showInstr ? "rotate-180" : ""}`} />
+              <ChevronDown className={`h-4 w-4 transition-transform ${showInstr ? "rotate-180" : ""}`} />
             </button>
             {showInstr && (
-              <ol className="list-decimal space-y-1.5 px-7 pb-3 text-xs text-[color:var(--text-mid)] leading-relaxed">
+              <ol className="list-decimal space-y-1.5 px-7 pb-3 text-xs text-[var(--text-secondary)] leading-relaxed">
                 {instructions.map((step, i) => (
                   <li key={i}>{step}</li>
                 ))}
@@ -386,7 +387,7 @@ function ExerciseSheet({
               max={exercise.sets + 2}
               value={sets}
               onChange={(e) => setSets(+e.target.value)}
-              className="w-full accent-[color:var(--clay-orange)]"
+              className="w-full accent-[var(--neon-orange)]"
             />
           </Field>
           <Field label="Weight (kg)">
@@ -396,7 +397,7 @@ function ExerciseSheet({
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
               placeholder="optional"
-              className="w-full rounded-xl border-[1.5px] border-[color:var(--clay-border)] bg-white px-3 py-2 text-sm outline-none focus:border-[color:var(--clay-orange)] text-[color:var(--text-dark)]"
+              className="glass-input"
             />
           </Field>
         </div>
@@ -408,7 +409,7 @@ function ExerciseSheet({
             max={10}
             value={rpe}
             onChange={(e) => setRpe(+e.target.value)}
-            className="w-full accent-[color:var(--clay-orange)]"
+            className="w-full accent-[var(--neon-orange)]"
           />
         </Field>
 
@@ -417,15 +418,15 @@ function ExerciseSheet({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded-xl border-[1.5px] border-[color:var(--clay-border)] bg-white px-3 py-2 text-sm outline-none focus:border-[color:var(--clay-orange)] text-[color:var(--text-dark)]"
+            className="glass-input"
           />
         </Field>
 
         <div className="mt-4 flex gap-2">
-          <button onClick={() => save(true)} disabled={saving} className="clay-btn clay-btn-ghost flex-1">
+          <button onClick={() => save(true)} disabled={saving} className="glass-btn glass-btn-ghost flex-1">
             Skip
           </button>
-          <button onClick={() => save(false)} disabled={saving} className="clay-btn flex-[2]">
+          <button onClick={() => save(false)} disabled={saving} className="glass-btn flex-[2]">
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
@@ -437,7 +438,7 @@ function ExerciseSheet({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="mt-3 block">
-      <span className="mb-1.5 block text-xs font-bold text-[color:var(--text-mid)]">{label}</span>
+      <span className="mb-1.5 block text-xs font-bold text-[var(--text-secondary)]">{label}</span>
       {children}
     </label>
   );
