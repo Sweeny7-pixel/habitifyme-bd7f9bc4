@@ -1,103 +1,147 @@
-# Claymorphism Redesign + Profile & Calendar Tabs (1:1 mobile shell)
 
-Port the attached `gymbuddy_v2.html` mock 1:1 — a fixed **375px wide mobile shell**, centered on desktop against the warm beige page background. All app screens render inside that shell.
+# Step 1 — Global Tokens & Locked Mobile Shell
 
-## 1. Design tokens (`src/styles.css`)
+Pure styling + layout architecture. No backend, no server functions, no per-page rewrites. Legacy `clay-*` class references on home/diet/calendar/profile/day pages keep rendering through `@utility` aliases while Steps 2–4 restyle each screen.
 
-Replace current palette with clay tokens from the mock, mapped via `@theme inline` so shadcn utilities keep working:
+---
 
-- Page bg `#E8E0D8`, shell bg `#F0EAE2`, card `#FFFFFF`, border `#DDD8D0`
-- Text: dark `#1E1C1A`, mid `#5A5855`, light `#9A9690`
-- Clay accents (each with `-shadow` + `-light`): orange `#D85A30`/`#8C3218`/`#FAECE7`, green `#2E8B57`, blue `#3A7BD5`, amber `#C9820A`, red `#C0392B`
-- Map to shadcn tokens: `--primary`=orange, `--background`=shell bg, `--card`=white, `--destructive`=red, etc.
+## 1. `src/styles.css` — full rewrite
 
-Custom utilities via `@utility`:
-- `clay-card` + `.orange/.green/.blue/.amber/.soft-orange/.soft-red` variants
-- `clay-btn` + `.green-btn/.red-btn/.outline-btn/.sm`
-- `clay-pill`, `clay-stat`, `clay-day-btn`, `prog-bar`, `focus-pill`, `week-pill`, `muscle-pill`, `feedback-btn`, `allergy-tag`, `meal-cal-badge`, `cal-toggle-btn`, `cal-month-day`
+### Tokens
 
-Dark mode kept but retuned to muted clay (not pure black). No hardcoded `text-white`/`bg-black` in components.
+Drop the warm clay palette and define the Dark Glassmorphism tokens.
 
-## 2. Fixed mobile shell
+**Raw vars in `:root`:**
+- Base: `--bg-base #0A0C0F`, `--bg-layer #0F1318`, `--bg-mesh` (3-stop radial: indigo / emerald / wine over `#0A0C0F`)
+- Glass: `--glass-1/2/3` (white 4 / 7 / 11 %), `--glass-border` 10 %, `--glass-border-bright` 18 %
+- Neon: `--neon-orange #FF6B35`, `--neon-green #00E5A0`, `--neon-blue #4D9EFF`, `--neon-amber #FFB830`, `--neon-purple #A67BFF` (each with `-glow` rgba)
+- Text: `--text-primary #F0EEF8`, `--text-secondary` 60 %, `--text-muted` 35 %
 
-Update `src/routes/_authenticated/route.tsx` to render the 375px shell exactly like the mock:
+**`@theme inline` additions** (so Tailwind utilities exist):
+- `--color-neon-orange/green/blue/amber/purple`, `--color-bg-base`, `--color-bg-layer` → enables `bg-neon-orange`, `text-neon-green`, `bg-bg-base`, etc.
+- shadcn semantic remap: `--background → bg-base`, `--foreground → text-primary`, `--card → glass-2`, `--popover → #15191F`, `--primary → neon-orange`, `--secondary → glass-2`, `--muted → glass-1`, `--accent → glass-3`, `--destructive → #FF6B6B`, `--border → glass-border`, `--input → glass-border-bright`, `--ring → neon-orange`, chart 1-5 → neon palette, sidebar → `bg-layer + glass-2`.
+- Legacy alias vars: `--color-clay-orange/green/blue/amber/red(+shadow/light)` and `--color-text-dark/mid/light` retained → existing `bg-clay-orange`, `text-clay-amber-shadow`, `text-text-mid` utilities keep resolving.
 
-```text
-body (page bg #E8E0D8, min-h-screen, center)
-└── .shell  (width: 375px, bg #F0EAE2, rounded-[28px], overflow-hidden, relative, min-height: 100vh on mobile / 812px on desktop)
-    ├── .topbar    (sticky, white, logo tile + avatar pill)
-    ├── .content   (scrollable, padding, contains <Outlet />)
-    └── .bottomnav (sticky, 5 icon items with active orange dot)
+**Legacy raw-var aliases in `:root`** (so `bg-[color:var(--clay-orange)]` and `text-[color:var(--text-dark)]` references in unconverted pages keep working):
+- `--page-bg → bg-base`, `--shell-bg → transparent`
+- `--text-dark/mid/light → text-primary/secondary/muted`
+- `--clay-border → glass-border`, `--clay-border-soft → white 6 %`
+- `--clay-orange/green/blue/amber/red(+shadow/light)` → neon equivalents + low-opacity tints
+
+**`.dark` block becomes a no-op** — dark is the default.
+
+### Base layer
+
+```css
+html, body, #root { height: 100%; }
+html { background: var(--bg-base); color-scheme: dark; }
+body {
+  background-image: var(--bg-mesh);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+* { border-color: var(--color-border); }
 ```
 
-- On screens <420px: shell is full-width, no outer padding (fills the phone)
-- On screens ≥420px: shell stays at 375px, centered, with the body bg showing around it (true mock fidelity)
-- Set viewport meta + default preview viewport to mobile
+### Glass primitives (all written as top-level `@utility`)
 
-Bottom nav (5 items, lucide icons):
-1. **Home** → `/home` (`House`)
-2. **Calendar** → `/calendar` (`CalendarDays`) — NEW
-3. **Workout** → `/day/today` (`Dumbbell`) — resolves to today's workout day, falls back to first day of current week
-4. **Diet** → `/diet` (`Utensils`)
-5. **Profile** → `/profile` (`User`) — NEW
+- **`glass-shell`** — flex column, `width:100%`, `max-width:375px`, `height:100%`, `margin-inline:auto`, `background-image: var(--bg-mesh)`, `overflow:hidden`. On `≥420px`: `height: min(100dvh - 32px, 860px)`, `border-radius:32px`, `border:1px solid var(--glass-border)`, layered drop + inset highlight shadow.
+- **`glass-card`** — `var(--glass-2)`, `backdrop-filter: blur(20px) saturate(1.4)`, radius 20, 1px glass border. Adds a top-edge highlight via `&::before` (gradient line). Standard `backdrop-filter` only — no `-webkit-` prefix (Lightning CSS adds it).
+- **Tint variants** `glass-card-orange / green / blue / amber / purple` — neon border + inset glow only (`box-shadow: inset 0 0 24px …`). Same names exposed as `clay-card-*` aliases via `@apply`.
+- **Buttons:** `glass-btn` (orange gradient pill, `box-shadow: 0 4px 24px var(--neon-orange-glow)`, spring-eased active state), `glass-btn-green`, `glass-btn-ghost`, `glass-btn-sm`. Aliases: `clay-btn`, `clay-btn-green`, `clay-btn-red` (red gradient variant), `clay-btn-outline → ghost`, `clay-btn-ghost → ghost`, `clay-btn-sm`.
+- **Chips/pills:** `glass-pill`, `focus-pill` (neon-blue tint), `muscle-pill`, `kcal-pill` (amber tint), `allergy-tag` (red glass).
+- **`glass-stat`** — glass surface, radius 18, blur, centered.
+- **`glass-day-btn`** + `-active` (orange tint + glow ring) + `-completed` (green tint). Aliases: `clay-day-btn(+-active/-completed)`.
+- **`prog-bar`** — height 6, track `rgba(255,255,255,0.08)`.
+- **`glass-nav-item`** + `-active` (orange tint pill). Aliases: `clay-nav-item(+-active)`.
+- **`sec-label`** — 10 px uppercase, `var(--text-muted)`, 0.1 em tracking.
+- **`scrollbar-none`** — `scrollbar-width: none` + `::-webkit-scrollbar { display:none }`. Plain class `.no-scrollbar` also kept for back-compat.
+- Keyframes `pulse-glow`, `shimmer`.
 
-Progress moves into Profile; the existing `/progress` route remains reachable from a Profile button.
+> Note: nested `&::before` / `&:active` / `&::-webkit-scrollbar` lives inside the utility body (Tailwind v4 disallows pseudo-element suffixes in utility names). The `glass-shell` desktop refinement uses a normal `@media` block on `.glass-shell`, not nested apply-shorthands, since v4 utility bodies don't accept media-nested `max-w-*` shorthands.
 
-## 3. Icons
+### Legacy `clay-*` alias bridges
+One-line `@utility name { @apply target }` for every old name still referenced across pages: `clay-shell`, `clay-card`, `clay-card-orange/green/blue/amber/soft-orange/soft-red/soft-green`, `clay-btn(+-green/-red/-outline/-ghost/-sm)`, `clay-pill`, `clay-stat`, `clay-day-btn(+-active/-completed)`, `clay-nav-item(+-active)`. Pages compile unchanged in Step 1.
 
-Use `lucide-react` (already installed) — closest match per Tabler icon used in the mock (Dumbbell, Flame, CalendarDays, User, Home, Utensils, Apple, Coffee, Soup, ChevronDown, X, Play, Plus, CheckCircle2, TrendingUp, Heart, AlertTriangle, Award, Target, Activity, Bed). No new package.
+---
 
-## 4. NEW: `/calendar`
+## 2. `src/routes/__root.tsx`
 
-`src/routes/_authenticated/calendar.tsx` — combined day view, all inside the 375px shell.
+- Append Inter to `head().links` (preconnect to `fonts.googleapis.com` + `fonts.gstatic.com` crossOrigin, then the stylesheet for `Inter:wght@400;500;600;700;800;900`). Never `@import` it in CSS — Tailwind v4 Lightning CSS resolves `@import` from disk.
+- Set `<html lang="en" className="dark">` in `RootShell` so `dark:` variants resolve.
+- Update `theme-color` meta `#E8E0D8` → `#0A0C0F`.
 
-- Header: "Calendar" greeting + week pill (current week #)
-- Week/Month toggle (`cal-toggle-btn`)
-- **Week strip**: 7 `clay-day-btn` (day name, num, dot). States: active (orange), completed (green), rest (muted), today (orange ring)
-- **Month grid**: 6×7 cells (`cal-month-day`) with same state styling
-- Selecting a day reveals stacked preview cards:
-  - **Workout card** (`clay-card`) — focus pill + exercise name chips (`cal-exercise-chip`, read-only). Button "Open workout" → `/day/{dayId}`
-  - **Diet card** (`clay-card`) — 4 compact `cal-meal-row` (Breakfast/Lunch/Snack/Dinner) with kcal pill + total footer
-  - **Progress card** (`clay-card soft-orange`) — bar + "X / Y sets logged · NN%"
+---
 
-Data: new server fn `getCalendarDay({ date })` returns `{ workoutDay, dietForDay, completionPct }`, joining `workout_days`, `weeks.diet_json`, `exercise_logs`.
+## 3. `src/routes/_authenticated/route.tsx` — locked mobile shell
 
-## 5. NEW: `/profile`
+Replace today's `clay-shell pb-24` scrolling layout with a frozen page-shell:
 
-`src/routes/_authenticated/profile.tsx` (all clay):
+```tsx
+<div
+  className="fixed inset-0 overflow-hidden flex items-stretch sm:items-center justify-center"
+  style={{ backgroundImage: 'var(--bg-mesh)' }}
+>
+  <div className="glass-shell">
+    {/* FROZEN HEADER */}
+    <header
+      className="shrink-0 z-50 px-4 pb-3
+                 pt-[calc(env(safe-area-inset-top)+14px)]
+                 border-b border-[color:var(--glass-border)]
+                 bg-[rgba(10,12,15,0.85)] backdrop-blur-xl"
+    >
+      {/* logo tile (36×36 orange gradient + neon-orange glow) · "GymBuddy"
+          · sign-out (28×28 glass circle) · avatar (orange→purple gradient, initial) */}
+    </header>
 
-- **Profile hero** (`clay-card orange`): big avatar initial, name, goal tag pill
-- **Stats row** (2-col `clay-stat`): Streak, Total workouts, Avg completion %, Weeks done
-- **Details card** (`clay-card`): rows for Age, Height, Weight, Experience, Equipment, Days/week, Injuries — each row icon + key/value
-- **Allergies card** (`clay-card soft-red`): `allergy-tag` chips with × + input + Add. Persists via existing `updateProfile` (allergies col already exists). Hint banner: "Diet will regenerate on next refresh"
-- **Weekly progress card**: per-week label + bar + % from `week_reviews`
-- **Footer buttons**: "View detailed progress" (→ `/progress`), "Sign out" (outline)
+    {/* SCROLL-ONLY MAIN — the only overflow surface */}
+    <main
+      className="flex-1 w-full overflow-y-auto overflow-x-hidden
+                 overscroll-contain scrollbar-none px-4 py-4"
+    >
+      <Outlet />
+    </main>
 
-Reuses `getProfile`, `updateProfile`, `getAllWeeks`. No schema changes.
-
-## 6. Redesign existing pages to clay (frontend only)
-
-- **Home** (`home.tsx`): greeting + week pill, streak hero (orange clay), today's focus pill, `ex-row` list with chevron-expand for steps + YouTube link, check-in clay-btn, 2-col `clay-stat` cards, meal preview rows (clickable → bottom sheet modal with food breakdown)
-- **Day detail** (`day.$dayId.tsx`): keep all existing logic. Restyle headers, set/rep inputs, RPE chips, log buttons with clay tokens. YouTube link as `yt-link` style with existing breakout `window.open`.
-- **Diet** (`diet.tsx`): week tabs + day tabs as `clay-day-btn`; meal sections as `clay-card`; food chips; total kcal footer; protein note banner; "Add allergy / Regenerate diet" modal (`redo-hint` style)
-- **Review** + **Progress**: clay stat cards + week progress bars
-
-No business-logic changes — purely classes, structure, icons.
-
-## 7. Files touched
-
-```text
-EDIT  src/styles.css                              (palette + clay utilities + shell)
-EDIT  src/routes/__root.tsx                       (viewport meta, body bg)
-EDIT  src/routes/_authenticated/route.tsx         (375px shell + 5-tab bottom nav)
-NEW   src/routes/_authenticated/calendar.tsx
-NEW   src/routes/_authenticated/profile.tsx
-EDIT  src/routes/_authenticated/home.tsx
-EDIT  src/routes/_authenticated/day.$dayId.tsx
-EDIT  src/routes/_authenticated/diet.tsx
-EDIT  src/routes/_authenticated/progress.tsx
-EDIT  src/routes/_authenticated/review.$weekId.tsx
-EDIT  src/lib/gym.functions.ts                    (add getCalendarDay)
+    {/* FROZEN BOTTOM NAV */}
+    <footer
+      className="shrink-0 z-50 pt-2
+                 pb-[calc(env(safe-area-inset-bottom)+10px)]
+                 border-t border-white/10
+                 bg-[rgba(10,12,15,0.90)] backdrop-blur-xl"
+    >
+      <nav className="flex items-stretch justify-around px-2">
+        {/* 5 icon-only tabs: Home / Workout / Nutrition / Calendar / Profile
+            (lucide: House, Dumbbell, Utensils, CalendarDays, User).
+            Active = `bg-[rgba(255,107,53,0.12)]` rounded pill + neon-orange
+            icon + 5×5 glowing dot beneath. */}
+      </nav>
+    </footer>
+  </div>
+</div>
 ```
 
-No DB migrations, no new dependencies. Preview viewport will be set to mobile on implementation.
+How the architecture requirements are met:
+
+- **No page bounce / no horizontal scroll** — outer `fixed inset-0 overflow-hidden`, body adds `overscroll-behavior-y: none`; main has `overflow-x-hidden`.
+- **Frozen header & footer** — `shrink-0` siblings of the scroll container; physically cannot scroll.
+- **Independent content scroll** — only `<main>` has `overflow-y-auto` + `overscroll-contain`.
+- **Live viewport sizing** — fixed wrapper always matches the visible viewport (handles mobile address-bar collapse); `100dvh` caps the desktop "phone" preview at `min(100dvh - 32px, 860px)`.
+- **Safe areas** — header `pt-[env(safe-area-inset-top)+14px]`, footer `pb-[env(safe-area-inset-bottom)+10px]`.
+- **Desktop preview** — `glass-shell` centers at 375 px on ≥420 px screens with rounded 32 px, glass border, soft drop shadow.
+
+Tab order now follows the new design prompt (Home / Workout / Nutrition / Calendar / Profile). The Workout tab keeps the existing `openTodayWorkout()` resolver pointing to today's day route, Nutrition → `/diet`, Calendar → `/calendar`. The signed-out action and profile avatar live in the header (kept from current shell).
+
+---
+
+## 4. Files touched
+
+```text
+EDIT  src/styles.css                         # dark-glass tokens + glass primitives + clay aliases
+EDIT  src/routes/__root.tsx                  # Inter <link>, html.dark, theme-color #0A0C0F
+EDIT  src/routes/_authenticated/route.tsx    # locked mobile shell (fixed wrapper · scroll-only main · safe-area · glass header & nav)
+```
+
+No new dependencies, no DB migrations, no server-function changes. After Step 1 the entire app renders on the dark-glass theme inside a frozen mobile shell; Steps 2–4 restyle Home, Workout/Day, Nutrition/Diet, Calendar, and Profile to their per-screen specs.

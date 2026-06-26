@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * GymBuddy claymorphism design system.
- * Tokens are defined as raw CSS variables in :root and mapped to Tailwind
- * utilities via @theme inline (so `bg-primary`, `text-card`, etc. still work).
+ * GymBuddy — Dark Glassmorphism design system (Step 1 of 4).
+ * Legacy `clay-*` utilities are aliased to their `glass-*` equivalents so
+ * existing pages keep compiling while later steps restyle them screen by screen.
  */
 
 @theme inline {
@@ -53,416 +53,468 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Clay accents (exposed as utilities: bg-clay-orange, text-clay-green, etc.) */
-  --color-clay-orange: var(--clay-orange);
-  --color-clay-orange-shadow: var(--clay-orange-shadow);
-  --color-clay-orange-light: var(--clay-orange-light);
-  --color-clay-green: var(--clay-green);
-  --color-clay-green-shadow: var(--clay-green-shadow);
-  --color-clay-green-light: var(--clay-green-light);
-  --color-clay-blue: var(--clay-blue);
-  --color-clay-blue-shadow: var(--clay-blue-shadow);
-  --color-clay-blue-light: var(--clay-blue-light);
-  --color-clay-amber: var(--clay-amber);
-  --color-clay-amber-light: var(--clay-amber-light);
-  --color-clay-red: var(--clay-red);
-  --color-clay-red-shadow: var(--clay-red-shadow);
-  --color-clay-red-light: var(--clay-red-light);
+  /* Base layers as utilities (bg-bg-base, text-bg-layer, …) */
+  --color-bg-base: #0A0C0F;
+  --color-bg-layer: #0F1318;
 
-  --color-text-dark: var(--text-dark);
-  --color-text-mid: var(--text-mid);
-  --color-text-light: var(--text-light);
+  /* Neon accents (bg-neon-orange, text-neon-green, …) */
+  --color-neon-orange: #FF6B35;
+  --color-neon-green: #00E5A0;
+  --color-neon-blue: #4D9EFF;
+  --color-neon-amber: #FFB830;
+  --color-neon-purple: #A67BFF;
+
+  /* Legacy clay color aliases — remap to neon equivalents so existing
+     references like `bg-clay-orange` / `text-clay-amber-shadow` keep working. */
+  --color-clay-orange: var(--neon-orange);
+  --color-clay-orange-shadow: #B83A0E;
+  --color-clay-orange-light: rgba(255, 107, 53, 0.12);
+  --color-clay-green: var(--neon-green);
+  --color-clay-green-shadow: #00A36F;
+  --color-clay-green-light: rgba(0, 229, 160, 0.12);
+  --color-clay-blue: var(--neon-blue);
+  --color-clay-blue-shadow: #2E63A8;
+  --color-clay-blue-light: rgba(77, 158, 255, 0.12);
+  --color-clay-amber: var(--neon-amber);
+  --color-clay-amber-light: rgba(255, 184, 48, 0.12);
+  --color-clay-red: #FF6B6B;
+  --color-clay-red-shadow: #B83A3A;
+  --color-clay-red-light: rgba(255, 107, 107, 0.12);
+
+  --color-text-dark: var(--text-primary);
+  --color-text-mid: var(--text-secondary);
+  --color-text-light: var(--text-muted);
 }
 
 :root {
   --radius: 0.875rem;
 
-  /* Page / shell base */
-  --page-bg: #E8E0D8;
-  --shell-bg: #F0EAE2;
+  /* Base background layers */
+  --bg-base: #0A0C0F;
+  --bg-layer: #0F1318;
+  --bg-mesh:
+    radial-gradient(ellipse at 20% 20%, #1A1060 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 80%, #0D3D2A 0%, transparent 55%),
+    radial-gradient(ellipse at 60% 10%, #2A0D1A 0%, transparent 40%),
+    #0A0C0F;
 
-  /* Clay palette */
-  --clay-orange: #D85A30;
-  --clay-orange-shadow: #8C3218;
-  --clay-orange-light: #FAECE7;
-  --clay-green: #2E8B57;
-  --clay-green-shadow: #1A5235;
-  --clay-green-light: #DAF1E3;
-  --clay-blue: #3A7BD5;
-  --clay-blue-shadow: #1F4F8F;
-  --clay-blue-light: #E1ECF9;
-  --clay-amber: #C9820A;
-  --clay-amber-light: #F7E7BD;
-  --clay-red: #C0392B;
-  --clay-red-shadow: #8A2820;
-  --clay-red-light: #FBE2DD;
+  /* Glass surfaces */
+  --glass-1: rgba(255, 255, 255, 0.04);
+  --glass-2: rgba(255, 255, 255, 0.07);
+  --glass-3: rgba(255, 255, 255, 0.11);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-border-bright: rgba(255, 255, 255, 0.18);
 
-  --text-dark: #1E1C1A;
-  --text-mid: #5A5855;
-  --text-light: #9A9690;
-  --clay-border: #DDD8D0;
-  --clay-border-soft: #EAE5DF;
+  /* Neon accents */
+  --neon-orange: #FF6B35;
+  --neon-orange-glow: rgba(255, 107, 53, 0.35);
+  --neon-green: #00E5A0;
+  --neon-green-glow: rgba(0, 229, 160, 0.30);
+  --neon-blue: #4D9EFF;
+  --neon-blue-glow: rgba(77, 158, 255, 0.30);
+  --neon-amber: #FFB830;
+  --neon-amber-glow: rgba(255, 184, 48, 0.30);
+  --neon-purple: #A67BFF;
+  --neon-purple-glow: rgba(166, 123, 255, 0.30);
 
-  /* shadcn semantic tokens */
-  --background: var(--shell-bg);
-  --foreground: var(--text-dark);
+  /* Typography */
+  --text-primary: #F0EEF8;
+  --text-secondary: rgba(240, 238, 248, 0.60);
+  --text-muted: rgba(240, 238, 248, 0.35);
 
-  --card: #FFFFFF;
-  --card-foreground: var(--text-dark);
+  /* Legacy aliases used directly by older pages */
+  --page-bg: var(--bg-base);
+  --shell-bg: transparent;
+  --text-dark: var(--text-primary);
+  --text-mid: var(--text-secondary);
+  --text-light: var(--text-muted);
+  --clay-border: var(--glass-border);
+  --clay-border-soft: rgba(255, 255, 255, 0.06);
+  --clay-orange: var(--neon-orange);
+  --clay-orange-shadow: #B83A0E;
+  --clay-orange-light: rgba(255, 107, 53, 0.12);
+  --clay-green: var(--neon-green);
+  --clay-green-shadow: #00A36F;
+  --clay-green-light: rgba(0, 229, 160, 0.12);
+  --clay-blue: var(--neon-blue);
+  --clay-blue-shadow: #2E63A8;
+  --clay-blue-light: rgba(77, 158, 255, 0.12);
+  --clay-amber: var(--neon-amber);
+  --clay-amber-light: rgba(255, 184, 48, 0.12);
+  --clay-red: #FF6B6B;
+  --clay-red-shadow: #B83A3A;
+  --clay-red-light: rgba(255, 107, 107, 0.12);
 
-  --popover: #FFFFFF;
-  --popover-foreground: var(--text-dark);
+  /* shadcn semantic tokens — point everything at the dark-glass palette */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
 
-  --primary: var(--clay-orange);
-  --primary-foreground: #FFFFFF;
+  --card: var(--glass-2);
+  --card-foreground: var(--text-primary);
 
-  --secondary: var(--clay-orange-light);
-  --secondary-foreground: var(--clay-orange-shadow);
+  --popover: #15191F;
+  --popover-foreground: var(--text-primary);
 
-  --muted: #F4EFE8;
-  --muted-foreground: var(--text-mid);
+  --primary: var(--neon-orange);
+  --primary-foreground: #ffffff;
 
-  --accent: var(--clay-amber-light);
-  --accent-foreground: var(--clay-orange-shadow);
+  --secondary: var(--glass-2);
+  --secondary-foreground: var(--text-primary);
 
-  --destructive: var(--clay-red);
-  --destructive-foreground: #FFFFFF;
+  --muted: var(--glass-1);
+  --muted-foreground: var(--text-secondary);
 
-  --border: var(--clay-border);
-  --input: var(--clay-border);
-  --ring: var(--clay-orange);
+  --accent: var(--glass-3);
+  --accent-foreground: var(--text-primary);
 
-  --chart-1: var(--clay-orange);
-  --chart-2: var(--clay-green);
-  --chart-3: var(--clay-blue);
-  --chart-4: var(--clay-amber);
-  --chart-5: var(--clay-red);
+  --destructive: #FF6B6B;
+  --destructive-foreground: #ffffff;
 
-  --sidebar: var(--shell-bg);
-  --sidebar-foreground: var(--text-dark);
-  --sidebar-primary: var(--clay-orange);
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: var(--clay-orange-light);
-  --sidebar-accent-foreground: var(--clay-orange-shadow);
-  --sidebar-border: var(--clay-border);
-  --sidebar-ring: var(--clay-orange);
+  --border: var(--glass-border);
+  --input: var(--glass-border-bright);
+  --ring: var(--neon-orange);
+
+  --chart-1: var(--neon-orange);
+  --chart-2: var(--neon-green);
+  --chart-3: var(--neon-blue);
+  --chart-4: var(--neon-amber);
+  --chart-5: var(--neon-purple);
+
+  --sidebar: var(--bg-layer);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--neon-orange);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--glass-2);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--glass-border);
+  --sidebar-ring: var(--neon-orange);
 }
 
 .dark {
-  /* Muted clay (kept compatible). The shell itself stays warm in this app. */
-  --page-bg: #1A1612;
-  --shell-bg: #221C17;
-
-  --background: var(--shell-bg);
-  --foreground: #F2EAE0;
-
-  --card: #2A221C;
-  --card-foreground: #F2EAE0;
-
-  --popover: #2A221C;
-  --popover-foreground: #F2EAE0;
-
-  --primary: var(--clay-orange);
-  --primary-foreground: #FFFFFF;
-
-  --secondary: #3A2E25;
-  --secondary-foreground: #F2EAE0;
-
-  --muted: #2A221C;
-  --muted-foreground: #B8AC9F;
-
-  --accent: #3A2E25;
-  --accent-foreground: #F2EAE0;
-
-  --destructive: var(--clay-red);
-  --destructive-foreground: #FFFFFF;
-
-  --border: #3A2E25;
-  --input: #3A2E25;
-  --ring: var(--clay-orange);
-
-  --text-dark: #F2EAE0;
-  --text-mid: #B8AC9F;
-  --text-light: #7C7165;
-  --clay-border: #3A2E25;
-  --clay-border-soft: #2A221C;
+  /* Dark is the default — keep .dark as a no-op for `dark:` variants. */
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
   }
-  html, body {
-    background-color: var(--page-bg);
+  html, body, #root {
+    height: 100%;
+  }
+  html {
+    background-color: var(--bg-base);
+    color-scheme: dark;
   }
   body {
-    color: var(--text-dark);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-base);
+    background-image: var(--bg-mesh);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
   }
 }
 
 /* ===========================================================
-   CLAYMORPHISM PRIMITIVES
+   DARK GLASSMORPHISM PRIMITIVES
    =========================================================== */
 
-/* ── Shell (fixed 375px on desktop, full width on phones) ── */
-@utility clay-shell {
+/* ── Locked mobile shell ── */
+@utility glass-shell {
   position: relative;
-  width: 100%;
-  max-width: 375px;
-  min-height: 100vh;
-  margin-inline: auto;
-  background: var(--shell-bg);
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 375px;
+  height: 100%;
+  margin-inline: auto;
+  background-image: var(--bg-mesh);
+  background-color: var(--bg-base);
   overflow: hidden;
 }
-
 @media (min-width: 420px) {
-  .clay-shell {
-    margin-block: 16px;
-    min-height: calc(100vh - 32px);
-    border-radius: 28px;
-    box-shadow: 0 24px 60px -20px rgba(60, 30, 10, 0.35);
+  .glass-shell {
+    height: min(100dvh - 32px, 860px);
+    border-radius: 32px;
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      0 32px 64px rgba(0, 0, 0, 0.70),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
 
-/* ── Cards ── */
-@utility clay-card {
-  background: var(--card);
-  border-radius: 22px;
-  border: 1.5px solid var(--clay-border);
-  box-shadow: 0 5px 0 0 var(--clay-border);
+/* ── Glass cards ── */
+@utility glass-card {
+  position: relative;
+  background: var(--glass-2);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
   padding: 16px;
-  color: var(--text-dark);
+  color: var(--text-primary);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-border-bright), transparent);
+    pointer-events: none;
+  }
 }
-@utility clay-card-orange {
-  background: var(--clay-orange);
-  border-color: var(--clay-orange-shadow);
-  box-shadow: 0 5px 0 0 var(--clay-orange-shadow);
-  color: #fff;
+@utility glass-card-orange {
+  border-color: rgba(255, 107, 53, 0.30);
+  box-shadow: inset 0 0 24px rgba(255, 107, 53, 0.12);
 }
-@utility clay-card-green {
-  background: var(--clay-green);
-  border-color: var(--clay-green-shadow);
-  box-shadow: 0 5px 0 0 var(--clay-green-shadow);
-  color: #fff;
+@utility glass-card-green {
+  border-color: rgba(0, 229, 160, 0.30);
+  box-shadow: inset 0 0 24px rgba(0, 229, 160, 0.12);
 }
-@utility clay-card-blue {
-  background: var(--clay-blue);
-  border-color: var(--clay-blue-shadow);
-  box-shadow: 0 5px 0 0 var(--clay-blue-shadow);
-  color: #fff;
+@utility glass-card-blue {
+  border-color: rgba(77, 158, 255, 0.30);
+  box-shadow: inset 0 0 24px rgba(77, 158, 255, 0.12);
 }
-@utility clay-card-amber {
-  background: var(--clay-amber-light);
-  border-color: #DDB96A;
-  box-shadow: 0 5px 0 0 #DDB96A;
+@utility glass-card-amber {
+  border-color: rgba(255, 184, 48, 0.30);
+  box-shadow: inset 0 0 24px rgba(255, 184, 48, 0.12);
 }
-@utility clay-card-soft-orange {
-  background: var(--clay-orange-light);
-  border-color: #F0BCA8;
-  box-shadow: 0 5px 0 0 #F0BCA8;
+@utility glass-card-purple {
+  border-color: rgba(166, 123, 255, 0.30);
+  box-shadow: inset 0 0 24px rgba(166, 123, 255, 0.12);
 }
-@utility clay-card-soft-red {
-  background: var(--clay-red-light);
-  border-color: #F1A89E;
-  box-shadow: 0 5px 0 0 #F1A89E;
-}
-@utility clay-card-soft-green {
-  background: var(--clay-green-light);
-  border-color: #8FD4AE;
-  box-shadow: 0 5px 0 0 #8FD4AE;
+@utility glass-card-red {
+  border-color: rgba(255, 107, 107, 0.30);
+  box-shadow: inset 0 0 24px rgba(255, 107, 107, 0.12);
 }
 
-/* ── Buttons ── */
-@utility clay-btn {
+/* ── Glass buttons ── */
+@utility glass-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--clay-orange);
-  color: #fff;
-  border: none;
-  border-radius: 999px;
+  width: 100%;
   padding: 14px 20px;
   font-size: 14px;
   font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.85), rgba(255, 61, 0, 0.85));
+  border: 1px solid rgba(255, 107, 53, 0.50);
+  border-radius: 999px;
+  box-shadow:
+    0 4px 24px rgba(255, 107, 53, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   cursor: pointer;
-  width: 100%;
-  box-shadow: 0 5px 0 0 var(--clay-orange-shadow);
-  transition: transform .1s, box-shadow .1s;
-  letter-spacing: -.01em;
-}
-.clay-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 0 var(--clay-orange-shadow); }
-.clay-btn:disabled { opacity: .5; cursor: not-allowed; }
+  letter-spacing: -0.01em;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
 
-@utility clay-btn-green {
-  background: var(--clay-green);
-  box-shadow: 0 5px 0 0 var(--clay-green-shadow);
+  &:active {
+    transform: translateY(2px) scale(0.98);
+    box-shadow: 0 2px 12px rgba(255, 107, 53, 0.30);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
-.clay-btn-green:active { box-shadow: 0 2px 0 0 var(--clay-green-shadow); }
-
-@utility clay-btn-red {
-  background: var(--clay-red);
-  box-shadow: 0 5px 0 0 var(--clay-red-shadow);
+@utility glass-btn-green {
+  background: linear-gradient(135deg, rgba(0, 229, 160, 0.85), rgba(0, 180, 120, 0.85));
+  border-color: rgba(0, 229, 160, 0.40);
+  box-shadow: 0 4px 24px rgba(0, 229, 160, 0.35);
 }
-.clay-btn-red:active { box-shadow: 0 2px 0 0 var(--clay-red-shadow); }
-
-@utility clay-btn-outline {
-  background: #fff;
-  color: var(--clay-orange);
-  border: 1.5px solid var(--clay-orange);
-  box-shadow: 0 4px 0 0 #F0BCA8;
+@utility glass-btn-red {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.85), rgba(200, 60, 60, 0.85));
+  border-color: rgba(255, 107, 107, 0.40);
+  box-shadow: 0 4px 24px rgba(255, 107, 107, 0.35);
 }
-.clay-btn-outline:active { box-shadow: 0 1px 0 0 #F0BCA8; }
-
-@utility clay-btn-ghost {
-  background: #fff;
-  color: var(--text-mid);
-  border: 1.5px solid var(--clay-border);
-  box-shadow: 0 3px 0 0 var(--clay-border);
+@utility glass-btn-ghost {
+  background: var(--glass-2);
+  border-color: var(--glass-border-bright);
+  color: var(--text-primary);
+  box-shadow: none;
 }
-.clay-btn-ghost:active { box-shadow: 0 1px 0 0 var(--clay-border); }
-
-@utility clay-btn-sm {
+@utility glass-btn-sm {
   padding: 9px 14px;
   font-size: 12px;
   width: auto;
 }
 
 /* ── Pills / chips ── */
-@utility clay-pill {
+@utility glass-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: #fff;
-  border: 1.5px solid var(--clay-border);
+  background: var(--glass-2);
+  border: 1px solid var(--glass-border);
   border-radius: 999px;
   padding: 4px 12px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-mid);
-  box-shadow: 0 3px 0 0 var(--clay-border);
+  color: var(--text-secondary);
 }
 @utility focus-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--clay-orange-light);
-  border: 1.5px solid #F0BCA8;
+  background: rgba(77, 158, 255, 0.12);
+  border: 1px solid rgba(77, 158, 255, 0.30);
   border-radius: 999px;
   padding: 6px 14px;
   font-size: 12px;
   font-weight: 700;
-  color: #8C3218;
-  box-shadow: 0 3px 0 0 #F0BCA8;
+  color: var(--neon-blue);
 }
 @utility muscle-pill {
-  background: var(--page-bg);
-  border: 1px solid var(--clay-border);
+  background: var(--glass-1);
+  border: 1px solid var(--glass-border);
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--text-mid);
+  color: var(--text-muted);
 }
 @utility kcal-pill {
   font-size: 10px;
   font-weight: 700;
-  color: #8C3218;
-  background: var(--clay-orange-light);
+  color: var(--neon-amber);
+  background: rgba(255, 184, 48, 0.15);
+  border: 1px solid rgba(255, 184, 48, 0.30);
   border-radius: 999px;
   padding: 3px 9px;
 }
 
-/* ── Stat cards ── */
-@utility clay-stat {
-  background: #fff;
-  border: 1.5px solid var(--clay-border);
+/* ── Stat cells ── */
+@utility glass-stat {
+  background: var(--glass-2);
+  border: 1px solid var(--glass-border);
   border-radius: 18px;
-  box-shadow: 0 4px 0 0 var(--clay-border);
   padding: 14px 12px;
   text-align: center;
+  backdrop-filter: blur(20px) saturate(1.4);
 }
 
-/* ── Day buttons (calendar / week strip) ── */
-@utility clay-day-btn {
-  background: #fff;
-  border: 1.5px solid var(--clay-border);
+/* ── Day buttons (week strip / calendar) ── */
+@utility glass-day-btn {
+  width: 100%;
+  background: var(--glass-2);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
-  box-shadow: 0 3px 0 0 var(--clay-border);
   padding: 6px 2px;
   text-align: center;
   cursor: pointer;
-  transition: all .15s;
-  width: 100%;
+  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: var(--text-secondary);
 }
-@utility clay-day-btn-active {
-  background: var(--clay-orange);
-  border-color: var(--clay-orange-shadow);
-  box-shadow: 0 3px 0 0 var(--clay-orange-shadow);
-  color: #fff;
+@utility glass-day-btn-active {
+  background: rgba(255, 107, 53, 0.15);
+  border-color: rgba(255, 107, 53, 0.40);
+  color: var(--neon-orange);
+  box-shadow: 0 0 16px rgba(255, 107, 53, 0.25);
 }
-@utility clay-day-btn-completed {
-  background: var(--clay-green-light);
-  border-color: #8FD4AE;
-  box-shadow: 0 3px 0 0 #8FD4AE;
-  color: var(--clay-green-shadow);
+@utility glass-day-btn-completed {
+  background: rgba(0, 229, 160, 0.10);
+  border-color: rgba(0, 229, 160, 0.30);
+  color: var(--neon-green);
 }
 
 /* ── Progress bar ── */
 @utility prog-bar {
-  height: 8px;
-  background: var(--page-bg);
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   overflow: hidden;
-  border: 1px solid var(--clay-border);
 }
 
-/* ── Nav (bottom) ── */
-@utility clay-nav-item {
+/* ── Bottom nav items ── */
+@utility glass-nav-item {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
+  padding: 8px 4px;
+  border-radius: 12px;
+  color: var(--text-muted);
   cursor: pointer;
-  padding: 8px 2px;
-  border-radius: 14px;
-  transition: background .15s;
-  color: var(--text-light);
+  transition: color 0.15s, background 0.15s;
 }
-@utility clay-nav-item-active {
-  background: var(--clay-orange-light);
-  color: var(--clay-orange);
+@utility glass-nav-item-active {
+  background: rgba(255, 107, 53, 0.12);
+  color: var(--neon-orange);
 }
 
-/* ── Tag / allergy ── */
+/* ── Tags ── */
 @utility allergy-tag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: var(--clay-red-light);
-  border: 1.5px solid #F1A89E;
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.30);
   border-radius: 999px;
   padding: 4px 10px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--clay-red);
+  color: #FF6B6B;
 }
 
-/* Section header */
+/* ── Section header ── */
 @utility sec-label {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-light);
-  letter-spacing: .08em;
+  color: var(--text-muted);
+  letter-spacing: 0.10em;
   text-transform: uppercase;
 }
 
-/* Hide scrollbars on horizontal scroll rows */
-.no-scrollbar::-webkit-scrollbar { display: none; }
+/* ── Scrollbar hiding ── */
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
 .no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ── Keyframes ── */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 16px rgba(255, 107, 53, 0.40); }
+  50%      { box-shadow: 0 0 28px rgba(255, 107, 53, 0.70); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+/* ===========================================================
+   LEGACY CLAY ALIASES
+   Keep existing pages compiling until later steps restyle them.
+   =========================================================== */
+
+@utility clay-shell { @apply glass-shell; }
+@utility clay-card { @apply glass-card; }
+@utility clay-card-orange { @apply glass-card glass-card-orange; }
+@utility clay-card-green { @apply glass-card glass-card-green; }
+@utility clay-card-blue { @apply glass-card glass-card-blue; }
+@utility clay-card-amber { @apply glass-card glass-card-amber; }
+@utility clay-card-soft-orange { @apply glass-card glass-card-orange; }
+@utility clay-card-soft-red { @apply glass-card glass-card-red; }
+@utility clay-card-soft-green { @apply glass-card glass-card-green; }
+
+@utility clay-btn { @apply glass-btn; }
+@utility clay-btn-green { @apply glass-btn glass-btn-green; }
+@utility clay-btn-red { @apply glass-btn glass-btn-red; }
+@utility clay-btn-outline { @apply glass-btn glass-btn-ghost; }
+@utility clay-btn-ghost { @apply glass-btn glass-btn-ghost; }
+@utility clay-btn-sm { @apply glass-btn-sm; }
+
+@utility clay-pill { @apply glass-pill; }
+@utility clay-stat { @apply glass-stat; }
+@utility clay-day-btn { @apply glass-day-btn; }
+@utility clay-day-btn-active { @apply glass-day-btn-active; }
+@utility clay-day-btn-completed { @apply glass-day-btn-completed; }
+@utility clay-nav-item { @apply glass-nav-item; }
+@utility clay-nav-item-active { @apply glass-nav-item-active; }
