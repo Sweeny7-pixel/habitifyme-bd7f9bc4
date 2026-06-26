@@ -18,6 +18,8 @@ import {
   Wand2,
   Flame,
   Target,
+  Trophy,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -105,9 +107,9 @@ function HomePage() {
   if (profileQ.isLoading || planQ.isLoading) {
     return (
       <div className="space-y-3 pt-3">
-        <div className="h-7 w-32 animate-pulse rounded bg-black/5" />
-        <div className="h-20 w-full animate-pulse rounded-2xl bg-black/5" />
-        <div className="h-16 w-full animate-pulse rounded-xl bg-black/5" />
+        <div className="h-7 w-32 animate-pulse rounded bg-white/5" />
+        <div className="h-20 w-full animate-pulse rounded-2xl bg-white/5" />
+        <div className="h-16 w-full animate-pulse rounded-xl bg-white/5" />
       </div>
     );
   }
@@ -115,17 +117,17 @@ function HomePage() {
   if (weeks.length === 0) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center px-4">
-        <div className="grid h-14 w-14 place-items-center rounded-[18px] bg-[color:var(--clay-orange)] text-white shadow-[0_5px_0_0_var(--clay-orange-shadow)] mb-4">
+        <div className="grid h-14 w-14 place-items-center rounded-[18px] bg-[var(--neon-orange)] text-white shadow-[0_0_24px_rgba(255,107,53,0.45)] mb-4">
           <Sparkles className="h-7 w-7" />
         </div>
-        <h2 className="text-lg font-extrabold text-[color:var(--text-dark)]">No plan yet</h2>
-        <p className="mt-1 max-w-xs text-sm text-[color:var(--text-mid)]">
+        <h2 className="text-lg font-extrabold text-[var(--text-primary)]">No plan yet</h2>
+        <p className="mt-1 max-w-xs text-sm text-[var(--text-secondary)]">
           Generate a personalized 4-week training plan based on your profile.
         </p>
         <button
           disabled={generate.isPending}
           onClick={() => generate.mutate()}
-          className="clay-btn mt-5 max-w-xs"
+          className="glass-btn mt-5 max-w-xs"
         >
           {generate.isPending ? "Generating…" : "Generate 4-week plan"}
         </button>
@@ -139,22 +141,23 @@ function HomePage() {
   const doneDays = activeDays.filter((d) => d.completed_at).length;
   const allDone = doneDays === totalDays && totalDays > 0;
   const streak = doneDays; // simple proxy for streak within the week
+  const monthName = new Date().toLocaleString(undefined, { month: "long" });
 
   return (
     <div className="space-y-4 pt-2">
       {/* Greeting */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-[22px] font-extrabold tracking-tight text-[color:var(--text-dark)] leading-tight">
+          <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--text-primary)] leading-tight">
             {profileQ.data?.name ? `Hey ${profileQ.data.name} 👋` : "Hey there 👋"}
           </h1>
-          <span className="clay-pill mt-1.5">Week {activeWeek.week_number} of {weeks.length}</span>
+          <span className="glass-pill mt-1.5">Week {activeWeek.week_number} · {monthName}</span>
         </div>
         <div className="flex shrink-0 flex-col gap-1.5">
           <button
             onClick={() => setPromptOpen(true)}
             disabled={generateFromPrompt.isPending}
-            className="clay-btn clay-btn-outline clay-btn-sm"
+            className="glass-btn glass-btn-ghost glass-btn-sm"
             title="Generate from prompt"
           >
             <Wand2 className="h-3.5 w-3.5" /> Prompt
@@ -162,7 +165,7 @@ function HomePage() {
           <button
             onClick={() => setConfirmOpen(true)}
             disabled={generate.isPending}
-            className="clay-btn clay-btn-ghost clay-btn-sm"
+            className="glass-btn glass-btn-ghost glass-btn-sm"
             title="Regenerate"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${generate.isPending ? "animate-spin" : ""}`} />
@@ -172,13 +175,43 @@ function HomePage() {
       </div>
 
       {/* Streak hero */}
-      <div className="clay-card clay-card-orange flex items-center gap-3.5">
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/20 border-2 border-white/30">
-          <Flame className="h-6 w-6 text-white" />
+      <div className="glass-card glass-card-orange relative flex items-center gap-3.5">
+        <div className="flame-halo">
+          <Flame className="h-6 w-6" />
         </div>
         <div className="min-w-0">
-          <div className="text-lg font-extrabold tracking-tight">{streak} day streak</div>
-          <div className="text-xs text-white/75 mt-0.5">{doneDays}/{totalDays} workouts done this week</div>
+          <div className="text-lg font-extrabold tracking-tight text-[var(--text-primary)]">
+            {streak} day streak
+          </div>
+          <div className="text-xs text-[var(--text-secondary)] mt-0.5">
+            {doneDays}/{totalDays} workouts done this week
+          </div>
+        </div>
+        <span
+          className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider"
+          style={{
+            background: "rgba(255,184,48,0.12)",
+            borderColor: "rgba(255,184,48,0.35)",
+            color: "var(--neon-amber)",
+          }}
+        >
+          <Trophy className="h-2.5 w-2.5" /> Personal best
+        </span>
+      </div>
+
+      {/* Metric grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="glass-card glass-card-green p-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Workouts done</div>
+          <div className="mt-1 text-2xl font-extrabold tracking-tight text-[var(--neon-green)]">
+            {doneDays}<span className="text-base text-[var(--text-secondary)]">/{totalDays}</span>
+          </div>
+        </div>
+        <div className="glass-card glass-card-amber p-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Calories</div>
+          <div className="mt-1 text-2xl font-extrabold tracking-tight text-[var(--neon-amber)]">
+            {diet?.daily_calories ?? "—"}
+          </div>
         </div>
       </div>
 
@@ -199,7 +232,7 @@ function HomePage() {
             <button
               key={w.id}
               onClick={() => setSelectedWeekNum(w.week_number)}
-              className={`clay-day-btn min-w-[68px] ${isActive ? "clay-day-btn-active" : ""}`}
+              className={`glass-day-btn min-w-[68px] ${isActive ? "glass-day-btn-active" : ""}`}
             >
               <div className="text-[9px] font-bold uppercase tracking-wider opacity-70">Week</div>
               <div className="text-base font-extrabold mt-0.5">{w.week_number}</div>
@@ -210,14 +243,14 @@ function HomePage() {
       </div>
 
       {/* Progress */}
-      <div className="clay-card">
+      <div className="glass-card">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-bold text-[color:var(--text-dark)]">Progress · Week {activeWeek.week_number}</span>
-          <span className="text-[color:var(--clay-orange)] font-extrabold">{totalDays ? Math.round((doneDays/totalDays)*100) : 0}%</span>
+          <span className="font-bold text-[var(--text-primary)]">Progress · Week {activeWeek.week_number}</span>
+          <span className="text-[var(--neon-orange)] font-extrabold">{totalDays ? Math.round((doneDays/totalDays)*100) : 0}%</span>
         </div>
         <div className="prog-bar mt-2">
           <div
-            className="h-full bg-[color:var(--clay-orange)] transition-all"
+            className="h-full bg-[var(--neon-orange)] shadow-[0_0_12px_var(--neon-orange-glow)] transition-all"
             style={{ width: totalDays ? `${(doneDays / totalDays) * 100}%` : "0%" }}
           />
         </div>
@@ -226,7 +259,7 @@ function HomePage() {
       {/* Days */}
       <section>
         <div className="sec-label mb-2">Training days</div>
-        <div className="clay-card divide-y divide-dashed divide-[color:var(--clay-border-soft)] p-0">
+        <div className="glass-card divide-y divide-dashed divide-white/10 p-0">
           {activeDays.map((d, i) => {
             const done = !!d.completed_at;
             const exCount = Array.isArray(d.exercises_json) ? d.exercises_json.length : 0;
@@ -235,20 +268,20 @@ function HomePage() {
                 key={d.id}
                 to="/day/$dayId"
                 params={{ dayId: d.id }}
-                className="flex items-center gap-3 px-4 py-3.5 hover:bg-[color:var(--clay-orange-light)]/60 transition first:rounded-t-[20px] last:rounded-b-[20px]"
+                className="day-row flex items-center gap-3 px-4 py-3.5 first:rounded-t-[20px] last:rounded-b-[20px]"
               >
                 {done ? (
-                  <CheckCircle2 className="h-5 w-5 text-[color:var(--clay-green)] shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-[var(--neon-green)] shrink-0" />
                 ) : (
-                  <Circle className="h-5 w-5 text-[color:var(--text-light)] shrink-0" />
+                  <Circle className="h-5 w-5 text-[var(--text-muted)] shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-[color:var(--text-dark)] truncate">{d.title}</p>
-                  <p className="text-[11px] text-[color:var(--text-mid)] mt-0.5">
+                  <p className="text-sm font-bold text-[var(--text-primary)] truncate">{d.title}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
                     {d.focus} · {exCount} exercises
                   </p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-[color:var(--text-light)] shrink-0" />
+                <ChevronRight className="h-4 w-4 text-[var(--text-muted)] shrink-0" />
                 <span className="sr-only">{i}</span>
               </Link>
             );
@@ -258,9 +291,9 @@ function HomePage() {
 
       {allDone && activeWeek.status === "active" && (
         <Link to="/review/$weekId" params={{ weekId: activeWeek.id }} className="block">
-          <div className="clay-card clay-card-soft-orange flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[color:var(--clay-orange)]" />
-            <span className="text-sm font-bold text-[color:var(--clay-orange-shadow)]">
+          <div className="glass-card glass-card-orange flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[var(--neon-orange)]" />
+            <span className="text-sm font-bold text-[var(--neon-orange)]">
               Week done — submit review →
             </span>
           </div>
@@ -273,21 +306,21 @@ function HomePage() {
           <div className="sec-label mb-2 flex items-center gap-1.5">
             <Utensils className="h-3.5 w-3.5" /> Today's diet target
           </div>
-          <div className="clay-card">
+          <div className="glass-card">
             <div className="grid grid-cols-2 gap-3">
-              <div className="clay-stat">
-                <div className="text-[22px] font-extrabold text-[color:var(--text-dark)]">{diet.daily_calories}</div>
+              <div className="glass-stat">
+                <div className="text-[22px] font-extrabold text-[var(--text-primary)]">{diet.daily_calories}</div>
                 <div className="sec-label mt-1">Kcal</div>
               </div>
-              <div className="clay-stat">
-                <div className="text-[22px] font-extrabold text-[color:var(--text-dark)]">{diet.daily_protein_g}g</div>
+              <div className="glass-stat">
+                <div className="text-[22px] font-extrabold text-[var(--text-primary)]">{diet.daily_protein_g}g</div>
                 <div className="sec-label mt-1">Protein</div>
               </div>
             </div>
             {diet.notes && (
-              <p className="mt-3 text-xs text-[color:var(--text-mid)] leading-relaxed">{diet.notes}</p>
+              <p className="mt-3 text-xs text-[var(--text-secondary)] leading-relaxed">{diet.notes}</p>
             )}
-            <Link to="/diet" className="clay-btn clay-btn-outline clay-btn-sm mt-3 w-full">
+            <Link to="/diet" className="glass-btn glass-btn-ghost glass-btn-sm mt-3 w-full">
               View 7-day diet plan
             </Link>
           </div>
@@ -297,18 +330,18 @@ function HomePage() {
       {/* Confirm regenerate modal */}
       {confirmOpen && (
         <Modal onClose={() => setConfirmOpen(false)} title="Regenerate 4-week plan?">
-          <p className="text-sm text-[color:var(--text-mid)]">
+          <p className="text-sm text-[var(--text-secondary)]">
             This replaces your upcoming weeks with a freshly generated plan.
             Completed weeks stay in your history.
           </p>
           <div className="mt-4 flex gap-2">
-            <button onClick={() => setConfirmOpen(false)} className="clay-btn clay-btn-ghost flex-1">
+            <button onClick={() => setConfirmOpen(false)} className="glass-btn glass-btn-ghost flex-1">
               Cancel
             </button>
             <button
               disabled={generate.isPending}
               onClick={() => generate.mutate()}
-              className="clay-btn flex-[2]"
+              className="glass-btn flex-[2]"
             >
               {generate.isPending ? "Generating…" : "Yes, regenerate"}
             </button>
@@ -319,7 +352,7 @@ function HomePage() {
       {/* Custom prompt modal */}
       {promptOpen && (
         <Modal onClose={() => { setPromptOpen(false); setCustomPrompt(""); }} title="Generate from a prompt">
-          <p className="text-sm text-[color:var(--text-mid)]">
+          <p className="text-sm text-[var(--text-secondary)]">
             Describe the plan you want. We'll match each exercise against the
             real exercise catalog (images + form videos).
           </p>
@@ -329,19 +362,19 @@ function HomePage() {
             rows={4}
             maxLength={500}
             placeholder="create a beginner friendly 5 day gym workout plan, include exercises, reps, sets and rest time"
-            className="mt-3 w-full rounded-2xl border-[1.5px] border-[color:var(--clay-border)] bg-white px-3 py-2.5 text-sm outline-none focus:border-[color:var(--clay-orange)] text-[color:var(--text-dark)]"
+            className="glass-input mt-3"
           />
-          <p className="mt-1 text-right text-[10px] text-[color:var(--text-light)]">
+          <p className="mt-1 text-right text-[10px] text-[var(--text-muted)]">
             {customPrompt.length}/500
           </p>
           <div className="mt-3 flex gap-2">
-            <button onClick={() => { setPromptOpen(false); setCustomPrompt(""); }} className="clay-btn clay-btn-ghost flex-1">
+            <button onClick={() => { setPromptOpen(false); setCustomPrompt(""); }} className="glass-btn glass-btn-ghost flex-1">
               Cancel
             </button>
             <button
               disabled={generateFromPrompt.isPending || customPrompt.trim().length < 10}
               onClick={() => generateFromPrompt.mutate(customPrompt.trim())}
-              className="clay-btn flex-[2]"
+              className="glass-btn flex-[2]"
             >
               {generateFromPrompt.isPending ? "Generating…" : "Generate plan"}
             </button>
@@ -354,13 +387,15 @@ function HomePage() {
 
 function Modal({ onClose, title, children }: { onClose: () => void; title: string; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="w-full max-w-[375px] rounded-t-[28px] bg-white p-5 pb-7 max-h-[85vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-[color:var(--clay-border)]" />
-        <h3 className="text-base font-extrabold text-[color:var(--text-dark)] mb-2">{title}</h3>
+    <div className="glass-modal-overlay" onClick={onClose}>
+      <div className="glass-bottom-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="glass-sheet-handle" />
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <h3 className="text-base font-extrabold text-[var(--text-primary)]">{title}</h3>
+          <button onClick={onClose} className="glass-sheet-close" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
         {children}
       </div>
     </div>
