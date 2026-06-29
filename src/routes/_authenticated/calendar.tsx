@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getAllPlanWeeks, getWeekDiet } from "@/lib/gym.functions";
 import {
   CalendarDays,
@@ -64,6 +64,16 @@ function CalendarPage() {
   const weeks = planQ.data?.weeks ?? [];
   const days = planQ.data?.days ?? [];
 
+  // Week-strip navigation (Prev/Next/dots above the day pills).
+  const [viewWeekNum, setViewWeekNum] = useState<number | null>(null);
+  useEffect(() => {
+    if (viewWeekNum != null || weeks.length === 0) return;
+    const active = weeks.find((w) => w.status === "active");
+    setViewWeekNum(active?.week_number ?? weeks[0].week_number);
+  }, [weeks, viewWeekNum]);
+  const totalWeeks = weeks.length;
+  const currentViewWeek = weeks.find((w) => w.week_number === viewWeekNum) ?? null;
+
   // Map calendar dates → workout day. We assume weeks[0] starts on the Monday
   // of that week's start_date, and day_index 1..N maps to consecutive days.
   // If no start_date, fall back to today's week.
@@ -102,6 +112,14 @@ function CalendarPage() {
   }, [weeks, weekStartMap, selected]);
 
   const selectedDay = dateToDay.get(selected.toDateString()) ?? null;
+
+  // Anchor date the week strip should be centred on: the Monday of the
+  // currently-viewed week (falls back to the selected date).
+  const stripAnchor = useMemo(() => {
+    if (!currentViewWeek) return selected;
+    const start = weekStartMap.get(currentViewWeek.id);
+    return start ?? selected;
+  }, [currentViewWeek, weekStartMap, selected]);
 
   if (planQ.isLoading) {
     return (
@@ -163,8 +181,21 @@ function CalendarPage() {
 
       {view === "week" ? (
         <>
-          <WeekStrip selected={selected} setSelected={setSelected} dateToDay={dateToDay} today={today} />
-          <WeeklyProgressCard selected={selected} dateToDay={dateToDay} />
+          {totalWeeks > 0 && viewWeekNum != null && (
+            <WeekNav
+              viewWeek={viewWeekNum}
+              totalWeeks={totalWeeks}
+              weeks={weeks}
+              onChange={(n: number) => {
+                setViewWeekNum(n);
+                const w = weeks.find((x) => x.week_number === n);
+                const start = w ? weekStartMap.get(w.id) : null;
+                if (start) setSelected(start);
+              }}
+            />
+          )}
+          <WeekStrip anchor={stripAnchor} selected={selected} setSelected={setSelected} dateToDay={dateToDay} today={today} />
+          <WeeklyProgressCard anchor={stripAnchor} dateToDay={dateToDay} />
         </>
       ) : (
         <MonthGrid
@@ -187,18 +218,89 @@ function CalendarPage() {
   );
 }
 
+function WeekNav({
+  viewWeek,
+  totalWeeks,
+  weeks,
+  onChange,
+}: {
+  viewWeek: number;
+  totalWeeks: number;
+  weeks: { week_number: number; status: string }[];
+  onChange: (n: number) => void;
+}) {
+  const canPrev = viewWeek > 1;
+  const canNext = viewWeek < totalWeeks;
+  return (
+    <div className="glass-card p-2.5">
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => canPrev && onChange(viewWeek - 1)}
+          disabled={!canPrev}
+          aria-label="Previous week"
+          className="inline-flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] disabled:opacity-30"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Prev
+        </button>
+        <span className="text-xs font-extrabold text-[var(--neon-orange)]">
+          Week {viewWeek} of {totalWeeks}
+        </span>
+        <button
+          type="button"
+          onClick={() => canNext && onChange(viewWeek + 1)}
+          disabled={!canNext}
+          aria-label="Next week"
+          className="inline-flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] disabled:opacity-30"
+        >
+          Next <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {totalWeeks > 1 && (
+        <div className="mt-2 flex justify-center gap-1.5">
+          {weeks.map((w) => {
+            const isView = w.week_number === viewWeek;
+            const done = w.status === "completed";
+            return (
+              <button
+                key={w.week_number}
+                type="button"
+                aria-label={`Go to week ${w.week_number}`}
+                onClick={() => onChange(w.week_number)}
+                className="h-2 w-2 rounded-full transition"
+                style={{
+                  background: isView
+                    ? "var(--neon-orange)"
+                    : done
+                      ? "var(--neon-green)"
+                      : "rgba(255,255,255,0.18)",
+                  transform: isView ? "scale(1.4)" : undefined,
+                  boxShadow: isView ? "0 0 8px var(--neon-orange-glow)" : undefined,
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WeekStrip({
+  /* anchor day used as the Monday-of-week origin for the strip */
+  anchor,
   selected,
   setSelected,
   dateToDay,
   today,
 }: {
+  anchor: Date;
   selected: Date;
   setSelected: (d: Date) => void;
   dateToDay: Map<string, { id: string; completed_at: string | null }>;
   today: Date;
 }) {
-  const start = useMemo(() => startOfWeekMon(selected), [selected]);
+  const start = useMemo(() => startOfWeekMon(anchor), [anchor]);
   const cells = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
 
   return (
@@ -239,13 +341,13 @@ function WeekStrip({
 }
 
 function WeeklyProgressCard({
-  selected,
+  anchor,
   dateToDay,
 }: {
-  selected: Date;
+  anchor: Date;
   dateToDay: Map<string, { id: string; completed_at: string | null }>;
 }) {
-  const start = useMemo(() => startOfWeekMon(selected), [selected]);
+  const start = useMemo(() => startOfWeekMon(anchor), [anchor]);
   const week = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
   const scheduled = week.filter((d) => dateToDay.get(d.toDateString())).length;
   const completed = week.filter((d) => dateToDay.get(d.toDateString())?.completed_at).length;

@@ -7,12 +7,14 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { detectGap, hasChosenTodayAlready, readLastCheckin } from "@/lib/gap-detector";
+import { GapChoiceModal } from "@/components/GapChoiceModal";
 
 function NotFoundComponent() {
   return (
@@ -124,6 +126,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const [gapModalDays, setGapModalDays] = useState<number | null>(null);
+  const [gapBanner, setGapBanner] = useState<string | null>(null);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
@@ -134,11 +138,41 @@ function RootComponent() {
     return () => sub.subscription.unsubscribe();
   }, [router, queryClient]);
 
+  useEffect(() => {
+    const gap = detectGap(readLastCheckin());
+    if (gap.tier === "long" && !hasChosenTodayAlready() && gap.daysMissed != null) {
+      setGapModalDays(gap.daysMissed);
+    } else if (gap.tier === "medium" && gap.bannerMessage) {
+      setGapBanner(gap.bannerMessage);
+      const t = setTimeout(() => setGapBanner(null), 4500);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster position="top-center" richColors closeButton theme="dark" />
+      {gapBanner && (
+        <div
+          className="fixed left-1/2 top-3 z-[90] -translate-x-1/2 glass-pill px-4 py-2 text-xs font-bold"
+          style={{
+            background: "rgba(255,107,53,0.18)",
+            borderColor: "rgba(255,107,53,0.45)",
+            color: "var(--neon-orange)",
+            boxShadow: "0 0 16px rgba(255,107,53,0.25)",
+          }}
+        >
+          {gapBanner}
+        </div>
+      )}
+      {gapModalDays !== null && (
+        <GapChoiceModal
+          daysMissed={gapModalDays}
+          onClose={() => setGapModalDays(null)}
+        />
+      )}
     </QueryClientProvider>
   );
 }

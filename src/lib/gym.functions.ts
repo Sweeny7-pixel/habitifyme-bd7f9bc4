@@ -5,6 +5,16 @@ import { z } from "zod";
 
 // ============ Schemas ============
 
+// Normalises the free-text allergies field. Treats sentinel words like
+// "no" / "none" as "no allergies" so the diet generator doesn't ban a
+// non-food.
+function normalizeAllergies(raw: string | null | undefined): string {
+  const v = (raw ?? "").trim();
+  if (!v) return "";
+  if (/^(no|none|n\/a|na|false|nil|n)$/i.test(v)) return "";
+  return v;
+}
+
 const ProfileInput = z.object({
   name: z.string().min(1),
   age: z.number().int().min(10).max(100),
@@ -216,7 +226,7 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
 - Equipment: ${profile.equipment}
 - Experience: ${profile.experience}
 - Injuries/health notes: ${profile.injuries || "none"}
-- Food allergies / foods to avoid: ${profile.allergies || "none"}${adaptation}`;
+- Food allergies / foods to avoid: ${normalizeAllergies(profile.allergies) || "none"}${adaptation}`;
 
     const plan = await callGeminiForPlan(SYSTEM_PROMPT, userPrompt);
 
@@ -323,6 +333,24 @@ export const completeWorkoutDay = createServerFn({ method: "POST" })
       .update({ completed_at: new Date().toISOString() })
       .eq("id", data.dayId).eq("user_id", userId);
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Resets the user's plan: clears completed_at on every workout day and
+// marks week 1 active again. Used by the "long gap" recovery flow.
+export const resetUserPlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    await supabase
+      .from("workout_days")
+      .update({ completed_at: null })
+      .eq("user_id", userId);
+    await supabase
+      .from("weeks")
+      .update({ status: "active" })
+      .eq("user_id", userId)
+      .eq("week_number", 1);
     return { ok: true };
   });
 
@@ -614,7 +642,7 @@ export const generateFourWeekPlan = createServerFn({ method: "POST" })
       goal: profile.goal, days_per_week: profile.days_per_week,
       equipment: profile.equipment, experience: profile.experience,
       injuries: profile.injuries ?? "",
-      allergies: profile.allergies ?? "",
+      allergies: normalizeAllergies(profile.allergies),
     };
 
     const plan = await callGeminiForFourWeekPlan(profileForPrompt, allowedForPrompt);
@@ -840,7 +868,7 @@ export const generatePlanFromPrompt = createServerFn({ method: "POST" })
           equipment: profile.equipment,
           experience: profile.experience,
           injuries: profile.injuries ?? "",
-          allergies: profile.allergies ?? "",
+          allergies: normalizeAllergies(profile.allergies),
         }
       : null;
 
@@ -996,7 +1024,7 @@ User profile:
 - Gender: ${input.profile.gender}
 - Workout sessions this week (${input.workoutDays.length}): ${input.workoutDays.join(", ") || "none"}
 - Rest days this week: ${input.restDayCount}
-- Allergies / foods to avoid: ${input.profile.allergies || "none"}
+- Allergies / foods to avoid: ${normalizeAllergies(input.profile.allergies as string | null | undefined) || "none"}
 
 STRICT RULES:
 1. Use only common Indian foods: roti, rice, dal, sabzi, eggs, paneer, curd, chicken (optional), fruits, nuts.
@@ -1089,7 +1117,7 @@ export const getWeekDiet = createServerFn({ method: "POST" })
         height_cm: profile.height_cm,
         age: profile.age,
         gender: profile.gender,
-        allergies: profile.allergies ?? "",
+        allergies: normalizeAllergies(profile.allergies),
       },
       workoutDays,
       restDayCount,

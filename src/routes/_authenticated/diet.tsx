@@ -114,7 +114,8 @@ function WeekDietView({ weekId }: { weekId: string }) {
 
   const [dayIdx, setDayIdx] = useState<number>(() => todayIndex());
 
-  if (dietQ.isLoading || dietQ.isFetching) return <CenterSpinner label="Generating your diet plan…" />;
+  // Only block on the first fetch — background refetches keep the UI visible.
+  if (dietQ.isLoading) return <CenterSpinner label="Loading your diet plan…" />;
   if (dietQ.isError) {
     return (
       <div className="glass-card glass-card-red text-sm text-[var(--text-primary)]">
