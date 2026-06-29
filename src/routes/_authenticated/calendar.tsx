@@ -218,6 +218,74 @@ function CalendarPage() {
   );
 }
 
+function WeekNav({
+  viewWeek,
+  totalWeeks,
+  weeks,
+  onChange,
+}: {
+  viewWeek: number;
+  totalWeeks: number;
+  weeks: { week_number: number; status: string }[];
+  onChange: (n: number) => void;
+}) {
+  const canPrev = viewWeek > 1;
+  const canNext = viewWeek < totalWeeks;
+  return (
+    <div className="glass-card p-2.5">
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => canPrev && onChange(viewWeek - 1)}
+          disabled={!canPrev}
+          aria-label="Previous week"
+          className="inline-flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] disabled:opacity-30"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Prev
+        </button>
+        <span className="text-xs font-extrabold text-[var(--neon-orange)]">
+          Week {viewWeek} of {totalWeeks}
+        </span>
+        <button
+          type="button"
+          onClick={() => canNext && onChange(viewWeek + 1)}
+          disabled={!canNext}
+          aria-label="Next week"
+          className="inline-flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] disabled:opacity-30"
+        >
+          Next <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {totalWeeks > 1 && (
+        <div className="mt-2 flex justify-center gap-1.5">
+          {weeks.map((w) => {
+            const isView = w.week_number === viewWeek;
+            const done = w.status === "completed";
+            return (
+              <button
+                key={w.week_number}
+                type="button"
+                aria-label={`Go to week ${w.week_number}`}
+                onClick={() => onChange(w.week_number)}
+                className="h-2 w-2 rounded-full transition"
+                style={{
+                  background: isView
+                    ? "var(--neon-orange)"
+                    : done
+                      ? "var(--neon-green)"
+                      : "rgba(255,255,255,0.18)",
+                  transform: isView ? "scale(1.4)" : undefined,
+                  boxShadow: isView ? "0 0 8px var(--neon-orange-glow)" : undefined,
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WeekStrip({
   /* anchor day used as the Monday-of-week origin for the strip */
   anchor,
