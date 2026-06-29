@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getAllPlanWeeks, getWeekDiet } from "@/lib/gym.functions";
 import {
   CalendarDays,
@@ -64,6 +64,16 @@ function CalendarPage() {
   const weeks = planQ.data?.weeks ?? [];
   const days = planQ.data?.days ?? [];
 
+  // Week-strip navigation (Prev/Next/dots above the day pills).
+  const [viewWeekNum, setViewWeekNum] = useState<number | null>(null);
+  useEffect(() => {
+    if (viewWeekNum != null || weeks.length === 0) return;
+    const active = weeks.find((w) => w.status === "active");
+    setViewWeekNum(active?.week_number ?? weeks[0].week_number);
+  }, [weeks, viewWeekNum]);
+  const totalWeeks = weeks.length;
+  const currentViewWeek = weeks.find((w) => w.week_number === viewWeekNum) ?? null;
+
   // Map calendar dates → workout day. We assume weeks[0] starts on the Monday
   // of that week's start_date, and day_index 1..N maps to consecutive days.
   // If no start_date, fall back to today's week.
@@ -102,6 +112,14 @@ function CalendarPage() {
   }, [weeks, weekStartMap, selected]);
 
   const selectedDay = dateToDay.get(selected.toDateString()) ?? null;
+
+  // Anchor date the week strip should be centred on: the Monday of the
+  // currently-viewed week (falls back to the selected date).
+  const stripAnchor = useMemo(() => {
+    if (!currentViewWeek) return selected;
+    const start = weekStartMap.get(currentViewWeek.id);
+    return start ?? selected;
+  }, [currentViewWeek, weekStartMap, selected]);
 
   if (planQ.isLoading) {
     return (
@@ -163,8 +181,21 @@ function CalendarPage() {
 
       {view === "week" ? (
         <>
-          <WeekStrip selected={selected} setSelected={setSelected} dateToDay={dateToDay} today={today} />
-          <WeeklyProgressCard selected={selected} dateToDay={dateToDay} />
+          {totalWeeks > 0 && viewWeekNum != null && (
+            <WeekNav
+              viewWeek={viewWeekNum}
+              totalWeeks={totalWeeks}
+              weeks={weeks}
+              onChange={(n) => {
+                setViewWeekNum(n);
+                const w = weeks.find((x) => x.week_number === n);
+                const start = w ? weekStartMap.get(w.id) : null;
+                if (start) setSelected(start);
+              }}
+            />
+          )}
+          <WeekStrip anchor={stripAnchor} selected={selected} setSelected={setSelected} dateToDay={dateToDay} today={today} />
+          <WeeklyProgressCard anchor={stripAnchor} dateToDay={dateToDay} />
         </>
       ) : (
         <MonthGrid
