@@ -336,6 +336,24 @@ export const completeWorkoutDay = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Resets the user's plan: clears completed_at on every workout day and
+// marks week 1 active again. Used by the "long gap" recovery flow.
+export const resetUserPlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    await supabase
+      .from("workout_days")
+      .update({ completed_at: null })
+      .eq("user_id", userId);
+    await supabase
+      .from("weeks")
+      .update({ status: "active" })
+      .eq("user_id", userId)
+      .eq("week_number", 1);
+    return { ok: true };
+  });
+
 // ============ Week review ============
 
 export const submitWeekReview = createServerFn({ method: "POST" })
