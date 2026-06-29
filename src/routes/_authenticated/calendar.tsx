@@ -186,7 +186,7 @@ function CalendarPage() {
               viewWeek={viewWeekNum}
               totalWeeks={totalWeeks}
               weeks={weeks}
-              onChange={(n) => {
+              onChange={(n: number) => {
                 setViewWeekNum(n);
                 const w = weeks.find((x) => x.week_number === n);
                 const start = w ? weekStartMap.get(w.id) : null;
