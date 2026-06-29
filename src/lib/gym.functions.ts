@@ -5,6 +5,16 @@ import { z } from "zod";
 
 // ============ Schemas ============
 
+// Normalises the free-text allergies field. Treats sentinel words like
+// "no" / "none" as "no allergies" so the diet generator doesn't ban a
+// non-food.
+function normalizeAllergies(raw: string | null | undefined): string {
+  const v = (raw ?? "").trim();
+  if (!v) return "";
+  if (/^(no|none|n\/a|na|false|nil|n)$/i.test(v)) return "";
+  return v;
+}
+
 const ProfileInput = z.object({
   name: z.string().min(1),
   age: z.number().int().min(10).max(100),
