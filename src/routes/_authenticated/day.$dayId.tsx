@@ -306,8 +306,7 @@ function ExerciseSheet({
   }
 
   function openYouTube() {
-    if (!exercise.youtubeLink) return;
-    let url = exercise.youtubeLink;
+    let url = exercise.youtubeLink || buildYouTubeSearchUrl(exercise.name, exercise.equipment);
     // Normalize legacy "+" encoding to %20 (older saved exercises).
     url = url.replace(/\?search_query=.+$/, (qs) => {
       const q = qs.replace(/^\?search_query=/, "").replace(/\+/g, " ");
@@ -379,15 +378,13 @@ function ExerciseSheet({
           {exercise.form_cue}
         </div>
 
-        {exercise.youtubeLink && (
-          <button
+        <button
             type="button"
             onClick={openYouTube}
             className="glass-btn glass-btn-ghost glass-btn-sm w-full mb-3"
           >
             <Play className="h-3.5 w-3.5" /> Watch form video on YouTube
-          </button>
-        )}
+        </button>
 
         {instructions.length > 0 && (
           <div className="mb-4 glass-card p-0 overflow-hidden">
