@@ -345,8 +345,59 @@ export const getDay = createServerFn({ method: "POST" })
     if (!day) return { day: null, logs: [] as never[] };
     const { data: logs } = await supabase
       .from("exercise_logs").select("*").eq("workout_day_id", data.dayId);
+
+    // Backfill missing catalog metadata (images, instructions, primaryMuscles,
+    // equipment, level, youtubeLink) for rows saved before hydration existed.
+    const rawExercises = Array.isArray(day.exercises_json)
+      ? (day.exercises_json as Record<string, unknown>[])
+      : [];
+    const needsHydration = rawExercises.some(
+      (ex) => !Array.isArray(ex?.images) || (ex.images as unknown[]).length === 0,
+    );
+    if (needsHydration && rawExercises.length > 0) {
+      const { findExercise } = await import("./exercise-db.server");
+      const hydrated = await Promise.all(
+        rawExercises.map(async (ex) => {
+          if (Array.isArray(ex.images) && (ex.images as unknown[]).length > 0) return ex;
+          const name = typeof ex.name === "string" ? ex.name : "";
+          const match = name ? await findExercise({ name }) : null;
+          const ytQuery = typeof ex.youtube_query === "string" ? ex.youtube_query : "";
+          if (!match) {
+            return {
+              ...ex,
+              images: [],
+              instructions: Array.isArray(ex.instructions) ? ex.instructions : [],
+              primaryMuscles: Array.isArray(ex.primaryMuscles) ? ex.primaryMuscles : [],
+              equipment: ex.equipment ?? null,
+              level: ex.level ?? null,
+              youtubeLink:
+                (typeof ex.youtubeLink === "string" && ex.youtubeLink) ||
+                "https://www.youtube.com/results?search_query=" +
+                  encodeURIComponent(ytQuery || `${name} proper form`).replaceAll("+", "%20"),
+            };
+          }
+          return {
+            ...ex,
+            name: match.name,
+            images: (match.images ?? []).map(toImageUrl),
+            instructions: Array.isArray(match.instructions)
+              ? match.instructions
+              : match.instructions
+                ? [String(match.instructions)]
+                : [],
+            primaryMuscles: match.primaryMuscles,
+            equipment: match.equipment ?? null,
+            level: match.level,
+            youtubeLink: match.youtubeLink,
+          };
+        }),
+      );
+      return { day: { ...day, exercises_json: hydrated }, logs: logs ?? [] };
+    }
+
     return { day, logs: logs ?? [] };
   });
+
 
 // ============ Log exercise / complete day ============
 
