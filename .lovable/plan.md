@@ -1,23 +1,37 @@
-## Fix: Week Review page — dark-glass consistency
+## Problem
 
-The Week Review page (`src/routes/_authenticated/review.$weekId.tsx`) still uses legacy white backgrounds and lime accents. Bring it in line with the rest of the app (dark glass + neon orange).
+Workout day cards show no exercise images. The current day's `exercises_json` in the DB only contains `name`, `sets`, `reps`, `rest_seconds`, `form_cue`, `youtube_query` — no `images`, `instructions`, `primaryMuscles`, `equipment`, `level`, or `youtubeLink`. The UI (`day.$dayId.tsx`) reads `ex.images?.[0]` and falls back to an empty placeholder, so nothing renders.
 
-### Changes in `src/routes/_authenticated/review.$weekId.tsx`
+Root cause: `generateWeekPlan` in `src/lib/gym.functions.ts` inserts the AI's raw plan directly (lines 245–253) without matching against the free-exercise-db catalog. The prompt-based path (`generateFromPrompt`, ~line 878) and the multi-week path (line 682) both hydrate through the catalog — `generateWeekPlan` was skipped.
 
-1. **"Easier / Same / Harder" pills**
-   - Unselected: replace `bg-white text-[var(--text-mid)]` with `glass-card` styling — subtle dark surface, muted text, hairline border.
-   - Selected: keep neon-orange highlight (border + tinted fill + orange text) consistent with other active chips in the app.
+## Fix
 
-2. **Notes textarea**
-   - Replace `bg-white border-[var(--clay-border)]` with the shared `glass-input` utility (dark surface, subtle border, white text, orange focus ring). Add `text-white placeholder:text-[var(--text-mid)] resize-none`.
+### 1. Hydrate on write in `generateWeekPlan` (`src/lib/gym.functions.ts`)
 
-3. **Range sliders**
-   - Swap `accent-lime-400` for the neon-orange custom slider styling already defined globally (uses `--neon-orange`), so the thumb/track match the onboarding sliders.
+Before inserting `workout_days`, run each AI-generated exercise through the same catalog match used by `generateFromPrompt`:
 
-4. **Submit button**
-   - Remove the stray `hover:bg-lime-300`; use the orange hover from `glass-btn`-style treatment (darker orange on hover) to stay on-palette.
+- Import `findExercise` / `searchExercises` from `./exercise-db.server`.
+- For each exercise, try `findExercise({ name })`; fall back to `searchExercises({ muscle: derivedFromFocus, level: profile.experience, limit: 1 })`.
+- Merge the AI's programming (`sets`, `reps`, `rest_seconds`, `form_cue`) with the catalog's `images` (mapped through `toImageUrl`), `instructions`, `primaryMuscles`, `equipment`, `level`, and `youtubeLink`.
+- If no match, keep the AI exercise as-is (name/sets/reps/form_cue) so the workout still shows — the placeholder tile then renders instead of a broken image.
 
-5. **Section labels**
-   - Update `text-[var(--clay-orange)]` → `text-[var(--neon-orange)]` for the "Week review" eyebrow, matching tokens used elsewhere.
+### 2. Backfill on read in `getDay` (same file)
 
-No logic changes — presentation only. No new files.
+Existing rows (like the currently-open Push Day) were saved without images. To avoid a migration or forced regeneration, hydrate on read:
+
+- In `getDay`, after loading `day`, walk `day.exercises_json` and for any exercise missing `images`, look it up in the catalog by name and attach `images`, `instructions`, `primaryMuscles`, `equipment`, `level`, `youtubeLink` in-memory before returning.
+- Do the same in `getWeek` / `getCurrentWeek` if the day list is consumed anywhere that shows images (calendar/home use titles only, so likely only `getDay` needs this — verify while implementing).
+
+This keeps stored data untouched but makes the UI work immediately for old and new plans.
+
+### 3. Verify
+
+- Reload `/day/9e4beeaa-…` and confirm each row shows a thumbnail on the left.
+- Open an exercise sheet and confirm the demo image carousel + "Watch form video on YouTube" link both work (the YouTube URL now comes from the catalog helper, not the raw `youtube_query`).
+- Generate a fresh week to confirm new rows are stored with `images` populated.
+
+## Files touched
+
+- `src/lib/gym.functions.ts` — hydrate in `generateWeekPlan`; backfill in `getDay` (and `getWeek`/`getCurrentWeek` if needed).
+
+No schema changes, no new files, no UI changes.

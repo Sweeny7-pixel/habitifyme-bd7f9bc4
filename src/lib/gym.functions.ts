@@ -230,6 +230,56 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
 
     const plan = await callGeminiForPlan(SYSTEM_PROMPT, userPrompt);
 
+    // Hydrate each AI exercise with catalog data (images, instructions,
+    // primaryMuscles, equipment, level, youtubeLink) so the UI can render
+    // thumbnails and demo images. Falls back to the raw AI exercise when no
+    // catalog match is found so the workout still shows.
+    const { findExercise } = await import("./exercise-db.server");
+    const hydratedDays = await Promise.all(
+      plan.days.map(async (d) => {
+        const exercises = await Promise.all(
+          d.exercises.map(async (ex) => {
+            const match = await findExercise({ name: ex.name });
+            if (!match) {
+              return {
+                name: ex.name,
+                sets: ex.sets,
+                reps: ex.reps,
+                rest_seconds: ex.rest_seconds,
+                form_cue: ex.form_cue,
+                images: [] as string[],
+                instructions: [] as string[],
+                primaryMuscles: [] as string[],
+                equipment: null as string | null,
+                level: null as string | null,
+                youtubeLink:
+                  "https://www.youtube.com/results?search_query=" +
+                  encodeURIComponent(ex.youtube_query || `${ex.name} proper form`).replaceAll("+", "%20"),
+              };
+            }
+            return {
+              name: match.name,
+              sets: ex.sets,
+              reps: ex.reps,
+              rest_seconds: ex.rest_seconds,
+              form_cue: ex.form_cue,
+              instructions: Array.isArray(match.instructions)
+                ? match.instructions
+                : match.instructions
+                  ? [String(match.instructions)]
+                  : [],
+              images: (match.images ?? []).map(toImageUrl),
+              youtubeLink: match.youtubeLink,
+              primaryMuscles: match.primaryMuscles,
+              equipment: match.equipment ?? null,
+              level: match.level,
+            };
+          }),
+        );
+        return { ...d, exercises };
+      }),
+    );
+
     // Insert week
     const { data: week, error: wErr } = await supabase
       .from("weeks").insert({
@@ -242,7 +292,7 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
     if (wErr) throw new Error(wErr.message);
 
     // Insert days
-    const daysToInsert = plan.days.map(d => ({
+    const daysToInsert = hydratedDays.map(d => ({
       week_id: week.id,
       user_id: userId,
       day_index: d.day_index,
@@ -252,6 +302,7 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
     }));
     const { error: dErr } = await supabase.from("workout_days").insert(daysToInsert);
     if (dErr) throw new Error(dErr.message);
+
 
     return { weekId: week.id };
   });
@@ -294,8 +345,60 @@ export const getDay = createServerFn({ method: "POST" })
     if (!day) return { day: null, logs: [] as never[] };
     const { data: logs } = await supabase
       .from("exercise_logs").select("*").eq("workout_day_id", data.dayId);
+
+    // Backfill missing catalog metadata (images, instructions, primaryMuscles,
+    // equipment, level, youtubeLink) for rows saved before hydration existed.
+    const rawExercises = Array.isArray(day.exercises_json)
+      ? (day.exercises_json as Record<string, unknown>[])
+      : [];
+    const needsHydration = rawExercises.some(
+      (ex) => !Array.isArray(ex?.images) || (ex.images as unknown[]).length === 0,
+    );
+    if (needsHydration && rawExercises.length > 0) {
+      const { findExercise } = await import("./exercise-db.server");
+      const hydrated = await Promise.all(
+        rawExercises.map(async (ex) => {
+          if (Array.isArray(ex.images) && (ex.images as unknown[]).length > 0) return ex;
+          const name = typeof ex.name === "string" ? ex.name : "";
+          const match = name ? await findExercise({ name }) : null;
+          const ytQuery = typeof ex.youtube_query === "string" ? ex.youtube_query : "";
+          if (!match) {
+            return {
+              ...ex,
+              images: [],
+              instructions: Array.isArray(ex.instructions) ? ex.instructions : [],
+              primaryMuscles: Array.isArray(ex.primaryMuscles) ? ex.primaryMuscles : [],
+              equipment: ex.equipment ?? null,
+              level: ex.level ?? null,
+              youtubeLink:
+                (typeof ex.youtubeLink === "string" && ex.youtubeLink) ||
+                "https://www.youtube.com/results?search_query=" +
+                  encodeURIComponent(ytQuery || `${name} proper form`).replaceAll("+", "%20"),
+            };
+          }
+          return {
+            ...ex,
+            name: match.name,
+            images: (match.images ?? []).map(toImageUrl),
+            instructions: Array.isArray(match.instructions)
+              ? match.instructions
+              : match.instructions
+                ? [String(match.instructions)]
+                : [],
+            primaryMuscles: match.primaryMuscles,
+            equipment: match.equipment ?? null,
+            level: match.level,
+            youtubeLink: match.youtubeLink,
+          };
+        }),
+      );
+      return { day: { ...day, exercises_json: hydrated as unknown as Json }, logs: logs ?? [] };
+    }
+
     return { day, logs: logs ?? [] };
   });
+
+
 
 // ============ Log exercise / complete day ============
 
