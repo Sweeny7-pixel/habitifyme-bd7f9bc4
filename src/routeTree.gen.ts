@@ -21,6 +21,8 @@ import { Route as AuthenticatedDietRouteImport } from './routes/_authenticated/d
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedReviewWeekIdRouteImport } from './routes/_authenticated/review.$weekId'
 import { Route as AuthenticatedDayDayIdRouteImport } from './routes/_authenticated/day.$dayId'
+import { Route as ApiPublicHooksSendWeeklyReviewRouteImport } from './routes/api/public/hooks/send-weekly-review'
+import { Route as ApiPublicHooksSendDailyReminderRouteImport } from './routes/api/public/hooks/send-daily-reminder'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -82,6 +84,18 @@ const AuthenticatedDayDayIdRoute = AuthenticatedDayDayIdRouteImport.update({
   path: '/day/$dayId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksSendWeeklyReviewRoute =
+  ApiPublicHooksSendWeeklyReviewRouteImport.update({
+    id: '/api/public/hooks/send-weekly-review',
+    path: '/api/public/hooks/send-weekly-review',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksSendDailyReminderRoute =
+  ApiPublicHooksSendDailyReminderRouteImport.update({
+    id: '/api/public/hooks/send-daily-reminder',
+    path: '/api/public/hooks/send-daily-reminder',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -95,6 +109,8 @@ export interface FileRoutesByFullPath {
   '/progress': typeof AuthenticatedProgressRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
+  '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
+  '/api/public/hooks/send-weekly-review': typeof ApiPublicHooksSendWeeklyReviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -108,6 +124,8 @@ export interface FileRoutesByTo {
   '/progress': typeof AuthenticatedProgressRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
+  '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
+  '/api/public/hooks/send-weekly-review': typeof ApiPublicHooksSendWeeklyReviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -123,6 +141,8 @@ export interface FileRoutesById {
   '/_authenticated/progress': typeof AuthenticatedProgressRoute
   '/_authenticated/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/_authenticated/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
+  '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
+  '/api/public/hooks/send-weekly-review': typeof ApiPublicHooksSendWeeklyReviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -138,6 +158,8 @@ export interface FileRouteTypes {
     | '/progress'
     | '/day/$dayId'
     | '/review/$weekId'
+    | '/api/public/hooks/send-daily-reminder'
+    | '/api/public/hooks/send-weekly-review'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -151,6 +173,8 @@ export interface FileRouteTypes {
     | '/progress'
     | '/day/$dayId'
     | '/review/$weekId'
+    | '/api/public/hooks/send-daily-reminder'
+    | '/api/public/hooks/send-weekly-review'
   id:
     | '__root__'
     | '/'
@@ -165,6 +189,8 @@ export interface FileRouteTypes {
     | '/_authenticated/progress'
     | '/_authenticated/day/$dayId'
     | '/_authenticated/review/$weekId'
+    | '/api/public/hooks/send-daily-reminder'
+    | '/api/public/hooks/send-weekly-review'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -172,6 +198,8 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiPublicHooksSendDailyReminderRoute: typeof ApiPublicHooksSendDailyReminderRoute
+  ApiPublicHooksSendWeeklyReviewRoute: typeof ApiPublicHooksSendWeeklyReviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -260,6 +288,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDayDayIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/send-weekly-review': {
+      id: '/api/public/hooks/send-weekly-review'
+      path: '/api/public/hooks/send-weekly-review'
+      fullPath: '/api/public/hooks/send-weekly-review'
+      preLoaderRoute: typeof ApiPublicHooksSendWeeklyReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/send-daily-reminder': {
+      id: '/api/public/hooks/send-daily-reminder'
+      path: '/api/public/hooks/send-daily-reminder'
+      fullPath: '/api/public/hooks/send-daily-reminder'
+      preLoaderRoute: typeof ApiPublicHooksSendDailyReminderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -293,6 +335,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiPublicHooksSendDailyReminderRoute: ApiPublicHooksSendDailyReminderRoute,
+  ApiPublicHooksSendWeeklyReviewRoute: ApiPublicHooksSendWeeklyReviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
