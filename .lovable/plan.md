@@ -1,26 +1,23 @@
-## Fix: Weekly progress bar looks 100% full when 0/5 completed
+## Fix: Week Review page — dark-glass consistency
 
-### Bug
-In `src/styles.css`, `@utility weekly-progress-fill` sets the purple→blue gradient on the **track** itself. The inner `<div style={{ width: pct% }}>` has no background, so at 0% the visible bar is still the full gradient track — misleading users into thinking the week is complete.
+The Week Review page (`src/routes/_authenticated/review.$weekId.tsx`) still uses legacy white backgrounds and lime accents. Bring it in line with the rest of the app (dark glass + neon orange).
 
-### Fix
-Swap the styles so the track is a muted glass surface and the inner fill carries the gradient + glow.
+### Changes in `src/routes/_authenticated/review.$weekId.tsx`
 
-```css
-@utility weekly-progress-fill {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  overflow: hidden;
+1. **"Easier / Same / Harder" pills**
+   - Unselected: replace `bg-white text-[var(--text-mid)]` with `glass-card` styling — subtle dark surface, muted text, hairline border.
+   - Selected: keep neon-orange highlight (border + tinted fill + orange text) consistent with other active chips in the app.
 
-  > div {
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
-    box-shadow: 0 0 12px rgba(166, 123, 255, 0.35);
-    transition: width .3s ease;
-  }
-}
-```
+2. **Notes textarea**
+   - Replace `bg-white border-[var(--clay-border)]` with the shared `glass-input` utility (dark surface, subtle border, white text, orange focus ring). Add `text-white placeholder:text-[var(--text-mid)] resize-none`.
 
-No component changes needed — `calendar.tsx` already renders the correct `<div style={{ width: `${pct}%` }} />` structure. One CSS-only edit.
+3. **Range sliders**
+   - Swap `accent-lime-400` for the neon-orange custom slider styling already defined globally (uses `--neon-orange`), so the thumb/track match the onboarding sliders.
+
+4. **Submit button**
+   - Remove the stray `hover:bg-lime-300`; use the orange hover from `glass-btn`-style treatment (darker orange on hover) to stay on-palette.
+
+5. **Section labels**
+   - Update `text-[var(--clay-orange)]` → `text-[var(--neon-orange)]` for the "Week review" eyebrow, matching tokens used elsewhere.
+
+No logic changes — presentation only. No new files.
