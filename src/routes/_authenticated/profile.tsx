@@ -173,7 +173,11 @@ function ProfilePage() {
         <StatCard label="Reviews done" value={String(stats.reviewsDone)} accent="var(--neon-blue)" />
       </div>
 
+      {/* Notifications */}
+      <NotificationsSection />
+
       {/* Achievements */}
+
       <section>
         <div className="sec-label mb-2 flex items-center gap-1.5">
           <Award className="h-3.5 w-3.5" /> Achievements
