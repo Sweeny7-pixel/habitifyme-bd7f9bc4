@@ -336,3 +336,172 @@ function DetailRow({ icon, k, v }: { icon: React.ReactNode; k: string; v: string
     </div>
   );
 }
+
+function NotificationsSection() {
+  const savePushFn = useServerFn(savePushSubscription);
+  const deletePushFn = useServerFn(deletePushSubscription);
+  const sendTestFn = useServerFn(sendTestPush);
+
+  const [supported] = useState(() => pushSupported());
+  const [ios] = useState(() => (typeof window !== "undefined" ? isIosSafari() : false));
+  const [permission, setPermission] = useState<NotificationPermission | "unknown">(
+    typeof Notification !== "undefined" ? Notification.permission : "unknown",
+  );
+  const [subscribed, setSubscribed] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const s = await getExistingPushSubscription();
+      if (alive) setSubscribed(!!s);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  async function enable() {
+    setBusy(true);
+    try {
+      const result = await subscribeToPush();
+      if (!result.ok) {
+        if (result.reason === "denied") {
+          setPermission("denied");
+          toast.error("Notifications blocked. Enable them in browser settings.");
+        } else if (result.reason === "ios-standalone") {
+          toast.error("On iOS, add HabitifyMe to your Home Screen first, then enable.");
+        } else if (result.reason === "preview") {
+          toast.error("Enable notifications in the published app, not the preview.");
+        } else if (result.reason === "unsupported") {
+          toast.error("This browser doesn't support push notifications.");
+        } else {
+          toast.error("Couldn't enable notifications. Try again.");
+        }
+        return;
+      }
+      await savePushFn({ data: serializeSubscription(result.subscription) });
+      setSubscribed(true);
+      setPermission("granted");
+      toast.success("Notifications enabled.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to enable notifications.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function disable() {
+    setBusy(true);
+    try {
+      const sub = await unsubscribeFromPush();
+      if (sub) await deletePushFn({ data: { endpoint: sub.endpoint } });
+      setSubscribed(false);
+      toast.success("Notifications disabled.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to disable.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendTest() {
+    setBusy(true);
+    try {
+      const res = await sendTestFn();
+      if (res.sent > 0) {
+        toast.success(`Test sent to ${res.sent} device${res.sent === 1 ? "" : "s"}. Check your notifications.`);
+      } else {
+        toast.error("Test could not be delivered. Try re-enabling.");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send test.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const statusLabel = !supported
+    ? "Unsupported"
+    : permission === "denied"
+      ? "Blocked in browser"
+      : subscribed
+        ? "Enabled"
+        : "Disabled";
+  const statusColor = subscribed
+    ? "var(--neon-green)"
+    : permission === "denied"
+      ? "var(--neon-orange)"
+      : "var(--text-muted)";
+
+  return (
+    <section>
+      <div className="sec-label mb-2 flex items-center gap-1.5">
+        <Bell className="h-3.5 w-3.5" /> Notifications
+      </div>
+      <div className="glass-card p-3 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-[var(--text-secondary)]">
+            Daily 5am · Sunday 9pm · Achievements
+          </div>
+          <span
+            className="text-[10px] font-extrabold uppercase tracking-wider"
+            style={{ color: statusColor }}
+          >
+            {statusLabel}
+          </span>
+        </div>
+
+        {!supported && (
+          <p className="text-[11px] text-[var(--text-muted)]">
+            This browser doesn't support push notifications.
+          </p>
+        )}
+        {supported && ios && !subscribed && (
+          <p className="text-[11px] text-[var(--neon-amber)]">
+            On iPhone: tap Share → Add to Home Screen, then open the installed app to enable.
+          </p>
+        )}
+        {supported && permission === "denied" && (
+          <p className="text-[11px] text-[var(--neon-orange)]">
+            Blocked in browser settings. Re-enable there and refresh.
+          </p>
+        )}
+
+        {supported && (
+          <div className="flex flex-wrap gap-2">
+            {!subscribed && permission !== "denied" && (
+              <button
+                onClick={enable}
+                disabled={busy}
+                className="glass-btn glass-btn-sm inline-flex items-center gap-1.5"
+              >
+                <Bell className="h-3.5 w-3.5" /> Enable notifications
+              </button>
+            )}
+            {subscribed && (
+              <>
+                <button
+                  onClick={sendTest}
+                  disabled={busy}
+                  className="glass-btn glass-btn-sm inline-flex items-center gap-1.5"
+                >
+                  <Send className="h-3.5 w-3.5" /> Send test
+                </button>
+                <button
+                  onClick={disable}
+                  disabled={busy}
+                  className="glass-btn glass-btn-sm inline-flex items-center gap-1.5"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <BellOff className="h-3.5 w-3.5" /> Disable
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
