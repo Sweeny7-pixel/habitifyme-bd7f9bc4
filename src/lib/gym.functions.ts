@@ -1130,3 +1130,90 @@ export const getWeekDiet = createServerFn({ method: "POST" })
 
     return { week: { ...week, diet_json: diet as unknown as Json }, diet };
   });
+
+// ============ Backfill media (images + youtubeLink) for legacy plans ============
+
+function serverYouTubeSearchUrl(name: string, equipment?: string | null): string {
+  const parts = ["how to do", String(name || "").trim()];
+  const eq = String(equipment || "").trim().toLowerCase();
+  if (eq && eq !== "body only" && eq !== "none" && eq !== "null") {
+    parts.push(String(equipment).trim());
+  }
+  parts.push("form");
+  const query = parts.filter(Boolean).join(" ");
+  return "https://www.youtube.com/results?search_query=" + encodeURIComponent(query).replaceAll("+", "%20");
+}
+
+export const backfillPlanMedia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { findExercise } = await import("./exercise-db.server");
+
+    const { data: days, error } = await supabase
+      .from("workout_days")
+      .select("id, exercises_json")
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+
+    let updatedDays = 0;
+
+    for (const row of days ?? []) {
+      const list = Array.isArray(row.exercises_json)
+        ? (row.exercises_json as unknown as Record<string, unknown>[])
+        : [];
+      let changed = false;
+
+      for (const ex of list) {
+        const imgs = Array.isArray(ex.images) ? (ex.images as string[]) : [];
+        const yt = typeof ex.youtubeLink === "string" ? ex.youtubeLink : "";
+        const needsImages = imgs.length === 0;
+        const needsYt = !yt;
+        if (!needsImages && !needsYt) continue;
+
+        const name = String(ex.name ?? "");
+        const equipment = (ex.equipment as string | null | undefined) ?? null;
+        const primaryMuscles = Array.isArray(ex.primaryMuscles)
+          ? (ex.primaryMuscles as string[])
+          : [];
+
+        let matched = false;
+        try {
+          const match = await findExercise({
+            name,
+            muscle: primaryMuscles[0],
+            equipment: equipment ?? undefined,
+          });
+          if (match) {
+            if (needsImages && match.images.length > 0) {
+              ex.images = match.images;
+              changed = true;
+            }
+            if (needsYt && match.youtubeLink) {
+              ex.youtubeLink = match.youtubeLink;
+              changed = true;
+              matched = true;
+            }
+          }
+        } catch {
+          // ignore; fall through to synthetic YT link
+        }
+
+        if (needsYt && !matched && !ex.youtubeLink) {
+          ex.youtubeLink = serverYouTubeSearchUrl(name, equipment);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        const { error: uErr } = await supabase
+          .from("workout_days")
+          .update({ exercises_json: list as unknown as Json })
+          .eq("id", row.id)
+          .eq("user_id", userId);
+        if (!uErr) updatedDays += 1;
+      }
+    }
+
+    return { updatedDays };
+  });
