@@ -30,6 +30,17 @@ type Exercise = {
   level?: string | null;
 };
 
+function buildYouTubeSearchUrl(name: string, equipment?: string | null): string {
+  const parts = ["how to do", String(name || "").trim()];
+  const eq = String(equipment || "").trim().toLowerCase();
+  if (eq && eq !== "body only" && eq !== "none" && eq !== "null") {
+    parts.push(String(equipment).trim());
+  }
+  parts.push("form");
+  const query = parts.filter(Boolean).join(" ");
+  return "https://www.youtube.com/results?search_query=" + encodeURIComponent(query).replaceAll("+", "%20");
+}
+
 function DayPage() {
   const { dayId } = Route.useParams();
   const navigate = useNavigate();
