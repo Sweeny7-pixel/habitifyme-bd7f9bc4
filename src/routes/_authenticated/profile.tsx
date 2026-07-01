@@ -31,7 +31,11 @@ import {
   LogOut,
   TrendingUp,
   Settings,
+  Bell,
+  BellOff,
+  Send,
 } from "lucide-react";
+
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/profile")({
