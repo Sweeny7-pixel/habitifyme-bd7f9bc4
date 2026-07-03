@@ -77,6 +77,10 @@ function Landing() {
       <footer className="border-t border-[var(--border)] py-6 text-center text-xs text-[var(--text-muted)]">
         HabitifyMe — built for the first 4 weeks that matter most.
       </footer>
+
+      {showHowItWorks && (
+        <HowItWorksModal onClose={() => setShowHowItWorks(false)} />
+      )}
     </div>
   );
 }
