@@ -65,6 +65,10 @@ function Onboarding() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.age <= 0 || form.height_cm <= 0 || form.weight_kg <= 0) {
+      toast.error("Please fill in age, height, and weight.");
+      return;
+    }
     setSubmitting(true);
     try {
       await save({ data: form });
@@ -114,27 +118,40 @@ function Onboarding() {
             className={inputCls} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Age">
-            <input type="number" value={form.age} onChange={(e) => update("age", +e.target.value)}
-              className={inputCls} />
-          </Field>
-          <Field label="Gender">
-            <SelectWrap>
-              <select value={form.gender} onChange={(e) => update("gender", e.target.value)} className={selectCls}>
-                <option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
-              </select>
-            </SelectWrap>
-          </Field>
-          <Field label="Height (cm)">
-            <input type="number" value={form.height_cm} onChange={(e) => update("height_cm", +e.target.value)}
-              className={inputCls} />
-          </Field>
-          <Field label="Weight (kg)">
-            <input type="number" step="0.5" value={form.weight_kg} onChange={(e) => update("weight_kg", +e.target.value)}
-              className={inputCls} />
-          </Field>
-        </div>
+    <div className="grid grid-cols-2 gap-3">
+        <Field label="Age">
+          <input
+            type="number"
+            value={form.age === 0 ? "" : form.age}
+            onChange={(e) => update("age", e.target.value === "" ? 0 : +e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Gender">
+          <SelectWrap>
+            <select value={form.gender} onChange={(e) => update("gender", e.target.value)} className={selectCls}>
+              <option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+            </select>
+          </SelectWrap>
+        </Field>
+        <Field label="Height (cm)">
+          <input
+            type="number"
+            value={form.height_cm === 0 ? "" : form.height_cm}
+            onChange={(e) => update("height_cm", e.target.value === "" ? 0 : +e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Weight (kg)">
+          <input
+            type="number"
+            step="0.5"
+            value={form.weight_kg === 0 ? "" : form.weight_kg}
+            onChange={(e) => update("weight_kg", e.target.value === "" ? 0 : +e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+      </div>
 
         <Field label="Main goal">
           <SelectWrap>
