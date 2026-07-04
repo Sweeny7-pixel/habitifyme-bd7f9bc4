@@ -187,9 +187,18 @@ function Onboarding() {
 
         <button type="submit" disabled={submitting}
           className="mt-2 w-full rounded-xl bg-[#FF6B35] py-3 text-sm font-bold text-white hover:bg-[#ff8c55] active:scale-[0.98] active:bg-[#e55a25] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-[0_4px_24px_rgba(255,107,53,0.40)]">
-          {submitting ? "Saving…" : "Generate my Week 1 plan →"}
+          {submitting ? "Saving…" : "Continue →"}
         </button>
       </form>
+
+      <StartDateModal
+        open={stage === "picking"}
+        onOpenChange={(v) => setStage(v ? "picking" : "form")}
+        onConfirm={handleStartDateConfirm}
+        title="When do you want to start?"
+        description="Day 1 of your Week 1 plan will be this date. Start today or pick a day in the next two weeks."
+        confirmLabel="Generate my Week 1 plan"
+      />
     </div>
   );
 }
