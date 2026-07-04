@@ -837,7 +837,7 @@ async function callGeminiForFourWeekPlan(
   const system = `You are HabitifyMe, a careful coach for budget-gym beginners in India. You will design a 4-week training block.
 RULES:
 - You MUST ONLY pick exercises from the provided allowed_exercises list, using their exact "id".
-- Use exactly profile.days_per_week training days per week (no rest days listed).
+- Use exactly profile.days_per_week training days per week (no rest days listed). Sunday is always a rest day — never schedule a workout on Sunday.
 - Apply gentle progressive overload week-over-week (more sets, harder reps, or shorter rest).
 - Reps as a string like "8-12" or "AMRAP". Rest in seconds.
 - Diet must be India-friendly (dal, roti, paneer, eggs, rice, chicken, curd). Provide 3 sample meals. Protein 1.4-2.0 g/kg.
