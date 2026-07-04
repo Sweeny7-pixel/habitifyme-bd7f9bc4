@@ -1,81 +1,94 @@
 ## Scope
-Save the full V4 roadmap for reference, then implement only **Phase 1 (audit) + Phase 2 (XP Engine) + Phase 3 (Level System)**. Everything else (Habit Score, check-in, triggers, achievements, etc.) is deferred to later turns and left as documentation.
+Fix the blocking `.env` parse error, then execute the four cleanup + feature steps you approved. Ordered so each build passes before the next change.
 
-No changes to existing UI, navigation, onboarding, workout generation, or the four AI helpers in `src/lib/gym.functions.ts`. This is additive.
-
-## Phase 1 — Audit (read-only, done during implementation)
-Confirm existing routes, `_authenticated` layout, `profiles`/`weeks`/`workout_days`/`exercise_logs`/`week_reviews` tables, and the current server-fn pattern in `src/lib/gym.functions.ts` before wiring XP calls. No file changes.
-
-## Phase 2 — XP Engine
-
-### Database migration
-New table `public.xp_transactions`:
-- `id uuid PK default gen_random_uuid()`
-- `user_id uuid NOT NULL` (indexed)
-- `reason text NOT NULL` (e.g. `workout_complete`, `weekly_review`, `profile_complete`, `sunday_planning`, `diet_logging`, `streak_7`, `bonus_surprise`)
-- `amount integer NOT NULL` (signed, so deductions are negative)
-- `metadata jsonb NOT NULL default '{}'`
-- `created_at timestamptz NOT NULL default now()` (indexed)
-- Optional `dedupe_key text` with a **partial unique index** on `(user_id, dedupe_key) WHERE dedupe_key IS NOT NULL` — prevents double-award for the same source event (e.g. `workout_day:<id>`).
-
-Grants + RLS in the same migration (per the cloud rules):
-- `GRANT SELECT, INSERT ON public.xp_transactions TO authenticated;` (no UPDATE/DELETE from client)
-- `GRANT ALL ON public.xp_transactions TO service_role;`
-- Enable RLS.
-- Policy: `SELECT` own rows (`auth.uid() = user_id`), `INSERT` own rows (`auth.uid() = user_id`).
-- Index on `(user_id, created_at desc)`.
-
-### XP config (configurable, no hardcoding in UI)
-New file `src/lib/xp-config.ts`:
-```ts
-export const XP_REWARDS = {
-  workout_complete: 50,
-  gym_checkin: 20,
-  weekly_review: 40,
-  streak_7: 150,
-  profile_complete: 25,
-  sunday_planning: 30,
-  diet_logging: 15,
-  bonus_surprise: 150,
-} as const;
-export type XpReason = keyof typeof XP_REWARDS;
-export const BONUS_SURPRISE_CHANCE = 0.10;
+## Step 0 — Fix `.env` (blocks build)
+Line 7 has a trailing semicolon:
 ```
-
-### Server functions
-New file `src/lib/xp.functions.ts` (client-safe path, per stack rules — NOT under `src/server/`). All use `.middleware([requireSupabaseAuth])`:
-- `awardXP({ reason, dedupeKey?, metadata? })` — looks up amount from `XP_REWARDS`, inserts a row via `context.supabase`, rolls a `bonus_surprise` (10%) and inserts a second row if it hits. Returns `{ awarded, bonus }`. Idempotent via `dedupe_key`.
-- `deductXP({ reason, amount, metadata? })` — inserts a negative row.
-- `getXPSummary()` — returns `{ totalXP, weeklyXP, level, xpIntoLevel, xpForNextLevel, recent: XpTransaction[] }`. Level math imported from `xp-config.ts`.
-- `getXPHistory({ limit? })` — recent transactions.
-
-### Wiring (minimal, no UI redesign)
-- Call `awardXP({ reason: 'workout_complete', dedupeKey: 'workout_day:'+dayId })` from the existing workout-finish handler in `src/routes/_authenticated/day.$dayId.tsx`.
-- Call `awardXP({ reason: 'weekly_review', dedupeKey: 'week_review:'+weekId })` from the existing weekly-review submit in `src/routes/_authenticated/review.$weekId.tsx`.
-- Call `awardXP({ reason: 'profile_complete', dedupeKey: 'profile:'+userId })` once at the end of `saveProfile` flow in onboarding.
-- No new pages, no changes to home/calendar/diet layouts yet.
-
-## Phase 3 — Level System
-
-Pure functions in `src/lib/xp-config.ts` (no DB — levels are derived from `totalXP`):
-```ts
-export const LEVEL_THRESHOLDS = [0, 150, 400, 800, 1400, 2200, 3200, 4400, 5800, 7400];
-export function getLevel(totalXP: number): number { /* binary search */ }
-export function getLevelProgress(totalXP: number): { level, xpIntoLevel, xpForNextLevel, pct };
+LOVABLE_API_KEY="...GLw";
 ```
+Rewrite as `LOVABLE_API_KEY=...GLw` (no quotes, no semicolon). Nothing else in `.env` changes.
 
-Levels are returned by `getXPSummary`; no dedicated UI for celebration/badges in this cycle (deferred to Phase 11/15). Consumers get the numbers; visual polish is a later phase.
+## Step 1 — Consolidate XP modules + drop redundant migration
+**Current tangle** (from a repo audit):
+- `src/lib/xp.ts` — uppercase `XP_RULES`, older API; used by `achievements.ts`, `habit-stats.ts`, `checkin.ts`, `home.tsx` (`awardSundayPlanningXP`), `profile.tsx` (`getTotalXP`, `getLevelTitle`), and dynamic `await import("./xp")` inside `gym.functions.ts` (2 sites).
+- `src/lib/xp.functions.ts` — lowercase `XP_REWARDS`, newer API; used by top-level `gym.functions.ts` import.
+- `src/lib/xp-config.ts` — the config module already exists.
 
-## Non-goals (deferred)
-- Habit Score (Phase 4), Habit Dashboard (Phase 5), Check-in (Phase 6), Triggers/Recovery/Sunday/Surprise UI (Phase 7-10), Achievements (Phase 11), Offline (Phase 12), Analytics events (Phase 13), Segmentation (Phase 14), Animations (Phase 15), other tables (Phase 16), edge functions (Phase 17), broader refactor/tests (Phase 18-20).
-- No changes to existing components, styles, navigation, or the four AI helpers.
-- Not fixing the earlier `LOVABLE_API_KEY missing` error in this cycle (raise separately if it still reproduces).
+**Plan (single source of truth = `xp-config.ts` + `xp.functions.ts`):**
+1. Extend `src/lib/xp-config.ts`:
+   - Add `LEVEL_TITLES` and `getLevelTitle(level)` (currently only in `xp.ts`).
+   - Add a legacy-key adapter map so `WORKOUT_COMPLETE → workout_complete`, `GYM_CHECKIN → gym_checkin`, etc. (used only during migration).
+2. Extend `src/lib/xp.functions.ts`:
+   - Add `getTotalXP` server fn + `getTotalXPInternal(supabase, userId)` helper.
+   - Add `awardSundayPlanningXP` server fn (port the ISO-week dedupe from `xp.ts` verbatim, calling `awardXPInternal` with `reason: "sunday_planning"` and `dedupeKey`).
+   - Add `getWeeklyXP` server fn (port the per-day bucket logic from `xp.ts`).
+   - Re-export `getLevelTitle`, `getLevelProgress`, `XP_REWARDS`.
+3. Rewrite the five call sites to import from `@/lib/xp.functions` / `@/lib/xp-config`:
+   - `src/lib/achievements.ts` — `getTotalXPInternal` from `xp.functions`.
+   - `src/lib/habit-stats.ts` — `getTotalXPInternal`, `getLevelProgress`, `getLevelTitle`.
+   - `src/lib/checkin.ts` — `awardXPInternal` + rename `XP_RULES.GYM_CHECKIN` → `XP_REWARDS.gym_checkin`; call `awardXPInternal(supabase, userId, { reason: "gym_checkin", dedupeKey })`.
+   - `src/routes/_authenticated/profile.tsx` — `getTotalXP`, `getLevelTitle`.
+   - `src/routes/_authenticated/home.tsx` — `awardSundayPlanningXP`.
+4. Rewrite the two dynamic imports in `src/lib/gym.functions.ts` (`await import("./xp")`) to use `awardXPInternal` from `./xp.functions` with the new lowercase reason enum. Keep the existing dedupe keys.
+5. Delete `src/lib/xp.ts`.
+6. Migration cleanup: `20260703000001_v4_habit_engine.sql` and `20260704021253_...sql` both `CREATE TABLE public.xp_transactions`. Since the DB already has the table (per audit), I'll open a new migration that makes both idempotent — `CREATE TABLE IF NOT EXISTS`, `CREATE POLICY IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS` — by editing the newer file (`20260704021253`) to `IF NOT EXISTS` form so a fresh DB replay succeeds. Do not delete either migration file (history is immutable in this project).
+
+**Verification:** `rg "from ['\"]@?/?\.?/?lib/xp['\"]"` returns 0 hits; `rg "XP_RULES"` returns 0 hits; typecheck passes.
+
+## Step 2 — Phase 5: Habit Dashboard on Home
+Home (`src/routes/_authenticated/home.tsx`, 740 lines) currently uses the existing dark-glass card system. Additive only — no redesign.
+
+**New file:** `src/components/HabitDashboardCard.tsx` — one card that renders:
+- Current Level + `getLevelTitle` chip.
+- XP progress bar (`pct` from `getLevelProgress`) with `xpIntoLevel / xpForNextLevel` label.
+- Weekly XP total and a 7-bar mini graph (reuse `getWeeklyXP.days`).
+- Today's Habit Score (0–100) from `habit-score.ts`.
+- Recent achievements strip (top 3 from `achievements.ts`, already in project).
+
+**Wiring:** Add one `useQuery` hook in `home.tsx` fetching a new consolidated server fn `getHabitDashboard` (in `src/lib/habit-stats.ts` or new `src/lib/dashboard.functions.ts`) that returns `{ level, title, pct, xpIntoLevel, xpForNextLevel, weeklyXP, days, habitScore, recentAchievements }`. Single round-trip; keeps UI dumb.
+
+Placement: insert `<HabitDashboardCard/>` at the top of the existing hero section on Home, above whatever is already rendered. No changes to nav, other cards, or styles.
+
+**Verification:** Home renders with new card; Playwright screenshot at 390×844; no console errors; existing Home features intact.
+
+## Step 3 — Phase 7: Trigger Engine
+**Schema migration** (new file) — extends `profiles` (Cloud rule: same file has GRANTs/policies already; only ADD COLUMN here):
+```sql
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS preferred_workout_time time,
+  ADD COLUMN IF NOT EXISTS workout_days text[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS timezone text,
+  ADD COLUMN IF NOT EXISTS reminder_enabled boolean NOT NULL DEFAULT true;
+```
+No new tables; RLS on `profiles` already applies.
+
+**Onboarding UI** (`src/routes/_authenticated/onboarding.tsx`, 194 lines):
+- Add three fields (time picker, day multi-select `Mon…Sun`, timezone — default `Intl.DateTimeFormat().resolvedOptions().timeZone`).
+- Persist through the existing `saveProfile` server fn — extend its `zod` schema in `gym.functions.ts` to accept the new fields.
+
+**Notification scheduling** (uses existing `push.functions.ts` + `push-sw.js`):
+- New route `src/routes/api/public/hooks/send-daily-reminder.ts` already exists — audit and extend so it:
+  - Runs hourly via `pg_cron`.
+  - For each user whose `preferred_workout_time` is within the next hour on a `workout_days` weekday (respecting `timezone`), enqueues a push with title "Workout in 30 min".
+  - For each user with no `exercise_logs` for 24h on a scheduled day, enqueues a "You missed today's workout" push.
+  - For each user with no activity for 3d / 7d / 14d, enqueues the Recovery / Restart / Fresh Week variants (copy from Habit Formation PRD).
+- Add pg_cron entry via the insert tool (not migration, per Cloud rules): hourly POST to `/api/public/hooks/send-daily-reminder` with `apikey` header.
+
+**Verification:** New profile columns visible; onboarding form saves; `curl` the reminder endpoint locally and confirm it selects the right users (log-only in a test flag). Cron entry appears in `cron.job`.
+
+## Step 4 — Phase 18: Refactor (residual)
+After Step 1 the biggest duplication is gone. Remaining refactor items:
+- Move dedupe-key generators (`workout_day:*`, `week_review:*`, `profile:*`, `SUNDAY_PLANNING:YYYY-Www`) into `src/lib/xp-config.ts` as pure helpers `dedupeKeys.workoutDay(id)` etc., so every call site (gym, home, checkin) uses the same generator.
+- Extract the 10% surprise bonus & idempotency logic already in `awardXPInternal` into a small documented "Reward Engine" section header in `xp.functions.ts` (comments only — no logic change) so future engines (Achievement, Habit) sit next to it.
+- Leave `habit-score.ts` and `achievements.ts` in place; already server-side and single-purpose.
+
+No new tests in this pass (Phase 19 is deferred).
 
 ## Files touched
-- **New:** `supabase/migrations/<ts>_xp_transactions.sql` (via migration tool), `src/lib/xp-config.ts`, `src/lib/xp.functions.ts`, `.lovable/plan.md` (roadmap for reference).
-- **Edited (small call-site additions only):** `src/routes/_authenticated/day.$dayId.tsx`, `src/routes/_authenticated/review.$weekId.tsx`, `src/routes/_authenticated/onboarding.tsx`.
+- **Fix:** `.env` (single line).
+- **New:** `src/components/HabitDashboardCard.tsx`, `src/lib/dashboard.functions.ts`, one Supabase migration for profile columns, one migration making `xp_transactions` creation idempotent.
+- **Edited:** `src/lib/xp-config.ts`, `src/lib/xp.functions.ts`, `src/lib/gym.functions.ts`, `src/lib/achievements.ts`, `src/lib/habit-stats.ts`, `src/lib/checkin.ts`, `src/routes/_authenticated/profile.tsx`, `src/routes/_authenticated/home.tsx`, `src/routes/_authenticated/onboarding.tsx`, `src/routes/api/public/hooks/send-daily-reminder.ts`.
+- **Deleted:** `src/lib/xp.ts`.
 
-## Verification
-- Migration approved and applied; `xp_transactions` visible with RLS + grants.
-- Finish a workout → one `workout_complete` row appears; finishing the same day again does NOT insert a duplicate (dedupe key).
-- `getXPSummary()` returns correct `totalXP` and `level` for a seeded user.
+## Non-goals
+No UI redesign, no changes to workout generation, diet, calendar, weekly-review flows, achievement badge visuals, offline support (Phase 12), segmentation (Phase 14), tests (Phase 19), or the four AI helpers. Nothing outside the four steps above.
