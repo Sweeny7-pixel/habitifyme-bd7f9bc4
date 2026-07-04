@@ -137,6 +137,15 @@ function WeekDietView({ weekId, startDate }: { weekId: string; startDate: string
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const regenerateMut = useMutation({
+    mutationFn: () => getDietFn({ data: { weekId, regenerate: true } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["weekDiet", weekId] });
+      toast.success("This week's diet has been regenerated 🍽️");
+    },
+    onError: (e: Error) => toast.error(e.message || "Couldn't regenerate the plan. Try again."),
+  });
+
   // Compute the "today" position within this week's diet (0..6). When the week
   // has not started yet → day 0; already ended → day 6. Falls back to zero when
   // we have no start_date.
@@ -185,13 +194,19 @@ function WeekDietView({ weekId, startDate }: { weekId: string; startDate: string
           Your old plan was a single daily target. The new plan gives you a full 7-day rolling menu tuned for workout vs rest days.
         </p>
         <button
-          onClick={async () => {
-            await getDietFn({ data: { weekId, regenerate: true } });
-            qc.invalidateQueries({ queryKey: ["weekDiet", weekId] });
-          }}
-          className="glass-btn glass-btn-sm mt-3"
+          onClick={() => regenerateMut.mutate()}
+          disabled={regenerateMut.isPending}
+          className="glass-btn glass-btn-sm mt-3 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <RefreshCw className="h-3.5 w-3.5" /> Generate 7-day plan
+          {regenerateMut.isPending ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-3.5 w-3.5" /> Generate 7-day plan
+            </>
+          )}
         </button>
       </div>
     );
@@ -303,13 +318,19 @@ function WeekDietView({ weekId, startDate }: { weekId: string; startDate: string
       )}
 
       <button
-        onClick={async () => {
-          await getDietFn({ data: { weekId, regenerate: true } });
-          qc.invalidateQueries({ queryKey: ["weekDiet", weekId] });
-        }}
-        className="glass-btn glass-btn-ghost glass-btn-sm"
+        onClick={() => regenerateMut.mutate()}
+        disabled={regenerateMut.isPending}
+        className="glass-btn glass-btn-ghost glass-btn-sm disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        <RefreshCw className="h-3.5 w-3.5" /> Regenerate this week
+        {regenerateMut.isPending ? (
+          <>
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Regenerating…
+          </>
+        ) : (
+          <>
+            <RefreshCw className="h-3.5 w-3.5" /> Regenerate this week
+          </>
+        )}
       </button>
     </div>
   );
