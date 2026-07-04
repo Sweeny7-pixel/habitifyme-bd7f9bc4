@@ -226,7 +226,8 @@ function DayPage() {
       </div>
 
       {/* Sticky finish button (inside shell, above bottom nav) */}
-      <div className="fixed inset-x-0 bottom-20 z-10 pointer-events-none">
+      <div className="fixed inset-x-0 z-10 pointer-events-none"
+            style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
         <div className="mx-auto max-w-[480px] px-4 pointer-events-auto">
           <button
             onClick={() => completeMut.mutate()}
