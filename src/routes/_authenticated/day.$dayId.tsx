@@ -316,18 +316,21 @@ function ExerciseSheet({
     }
   }
 
-  function openYouTube() {
-    let url = exercise.youtubeLink || buildYouTubeSearchUrl(exercise.name, exercise.equipment);
-    // Normalize legacy "+" encoding to %20 (older saved exercises).
-    url = url.replace(/\?search_query=.+$/, (qs) => {
-      const q = qs.replace(/^\?search_query=/, "").replace(/\+/g, " ");
-      return "?search_query=" + encodeURIComponent(q).replaceAll("+", "%20");
-    });
-    const win = window.open(url, "_blank", "noopener,noreferrer");
-    if (!win && typeof window !== "undefined" && window.top) {
-      window.top.location.href = url;
-    }
+function openYouTube() {
+  let url = exercise.youtubeLink || buildYouTubeSearchUrl(exercise.name, exercise.equipment);
+  url = url.replace(/\?search_query=.+$/, (qs) => {
+    const q = qs.replace(/^\?search_query=/, "").replace(/\+/g, " ");
+    return "?search_query=" + encodeURIComponent(q).replaceAll("+", "%20");
+  });
+
+  const win = window.open(url, "_blank", "noreferrer");
+  if (win) {
+    win.opener = null; // same protection as noopener, without nulling the reference
+  } else {
+    // Genuinely blocked (rare) — don't hijack the current tab.
+    toast.error("Your browser blocked the pop-up. Please allow pop-ups for this site.");
   }
+}
 
   return (
     <div className="glass-modal-overlay" onClick={onClose}>
