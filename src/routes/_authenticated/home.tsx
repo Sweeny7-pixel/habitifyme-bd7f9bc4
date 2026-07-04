@@ -258,7 +258,7 @@ function HomePage() {
 
   if (!activeWeek) return null;
   const diet = activeWeek.diet_json as DietJson | null;
-  const dietStats = getTodayDietStats(activeWeek.diet_json);
+  const dietStats = getTodayDietStats(activeWeek.diet_json, activeWeek.start_date);
   const totalDays = activeDays.length;
   const doneDays = activeDays.filter((d) => d.completed_at).length;
   const allDone = doneDays === totalDays && totalDays > 0;
