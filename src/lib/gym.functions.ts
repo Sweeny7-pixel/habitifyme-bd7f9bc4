@@ -1257,7 +1257,8 @@ export const generatePlanFromPrompt = createServerFn({ method: "POST" })
       .single();
     if (wErr) throw new Error(wErr.message);
 
-    const daysRows = validDays.map((d) => ({
+    const reindexedValidDays = reindexDaysSkipSunday(validDays, weekStartIso);
+    const daysRows = reindexedValidDays.map((d) => ({
       week_id: wRow.id,
       user_id: userId,
       day_index: d.day_index,
