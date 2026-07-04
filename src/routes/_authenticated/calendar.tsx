@@ -48,6 +48,13 @@ function addDays(d: Date, n: number) {
   return x;
 }
 
+/** Parse a `YYYY-MM-DD` from the DB as a local-midnight Date so `.toDateString()`
+ * matches user-facing calendar cells. */
+function parseDbDate(iso: string): Date {
+  const [y, m, d] = iso.split("-").map((n) => parseInt(n, 10));
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
+
 function CalendarPage() {
   const getPlanFn = useServerFn(getAllPlanWeeks);
   const planQ = useQuery({ queryKey: ["planWeeks"], queryFn: () => getPlanFn() });
