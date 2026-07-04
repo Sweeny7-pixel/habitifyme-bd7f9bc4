@@ -214,7 +214,14 @@ const SYSTEM_PROMPT = `You are HabitifyMe, a cautious, encouraging fitness coach
 
 export const generateWeekPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((d: unknown) => z.object({ weekNumber: z.number().int().min(1).max(52) }).parse(d))
+  .validator((d: unknown) =>
+    z
+      .object({
+        weekNumber: z.number().int().min(1).max(52),
+        startDate: StartDateInput,
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { weekNumber } = data;
@@ -228,6 +235,24 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
     const { data: existing } = await supabase
       .from("weeks").select("*").eq("user_id", userId).eq("week_number", weekNumber).maybeSingle();
     if (existing) return { weekId: existing.id };
+
+    // Resolve start_date. Explicit user pick > day-after previous week ends > today.
+    let startDateIso: string;
+    if (data.startDate) {
+      startDateIso = validateStartDate(data.startDate);
+    } else if (weekNumber > 1) {
+      const { data: prevWeek } = await supabase
+        .from("weeks")
+        .select("start_date")
+        .eq("user_id", userId)
+        .eq("week_number", weekNumber - 1)
+        .maybeSingle();
+      startDateIso = prevWeek?.start_date
+        ? addDaysIso(prevWeek.start_date, 7)
+        : validateStartDate(undefined);
+    } else {
+      startDateIso = validateStartDate(undefined);
+    }
 
     // Optionally include previous week summary for adaptation
     let adaptation = "";
@@ -251,7 +276,12 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
       }
     }
 
-    const userPrompt = `Generate Week ${weekNumber} for this user:
+    const scheduleDates = buildDatesForWeek(startDateIso, profile.days_per_week ?? 4);
+
+    const userPrompt = `Generate Week ${weekNumber} for this user. Day 1 starts on ${shortDateLabel(startDateIso)}.
+Use day_index (1..N) as the only day identifier. Do NOT reference weekday names in the JSON.
+Schedule (day_index → date): ${scheduleDates.map((d) => `${d.day_index}=${d.date_iso} (${d.weekday})`).join(", ")}
+
 - Name: ${profile.name}
 - Age: ${profile.age}, Gender: ${profile.gender}
 - Height: ${profile.height_cm}cm, Weight: ${profile.weight_kg}kg
@@ -322,6 +352,7 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
         plan_summary: plan.plan_summary,
         diet_json: plan.diet,
         status: "active",
+        start_date: startDateIso,
       }).select().single();
     if (wErr) throw new Error(wErr.message);
 
@@ -333,6 +364,7 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
       title: d.title,
       focus: d.focus,
       exercises_json: d.exercises,
+      workout_date: addDaysIso(startDateIso, Math.max(0, d.day_index - 1)),
     }));
     const { error: dErr } = await supabase.from("workout_days").insert(daysToInsert);
     if (dErr) throw new Error(dErr.message);
