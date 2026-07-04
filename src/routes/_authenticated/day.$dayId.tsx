@@ -225,21 +225,23 @@ function DayPage() {
         })}
       </div>
 
-      {/* Sticky finish button (inside shell, above bottom nav) */}
-      <div className="fixed inset-x-0 z-10 pointer-events-none"
-            style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
-        <div className="mx-auto max-w-[480px] px-4 pointer-events-auto">
-          <button
-            onClick={() => completeMut.mutate()}
-            disabled={completeMut.isPending || !!day.completed_at}
-            className={`glass-btn ${day.completed_at ? "glass-btn-green" : ""}`}
-            data-complete={day.completed_at ? "true" : "false"}
-          >
-            {day.completed_at ? (
-              <><CheckCircle2 className="h-4 w-4" /> Workout complete</>
-            ) : completeMut.isPending ? "Saving…" : "Finish workout"}
-          </button>
-        </div>
+      {/* Sticky finish button — sticks to the bottom of the scroll area (main),
+    which already stops exactly above the nav footer via flexbox. No
+    height-guessing, so it's safe-area agnostic on every device. */}
+      <div
+        className="sticky bottom-0 z-10 -mx-4 px-4 pb-3 pt-6 pointer-events-none"
+        style={{ background: "linear-gradient(to top, var(--bg-base) 55%, transparent)" }}
+      >
+        <button
+          onClick={() => completeMut.mutate()}
+          disabled={completeMut.isPending || !!day.completed_at}
+          className={`glass-btn pointer-events-auto ${day.completed_at ? "glass-btn-green" : ""}`}
+          data-complete={day.completed_at ? "true" : "false"}
+        >
+          {day.completed_at ? (
+            <><CheckCircle2 className="h-4 w-4" /> Workout complete</>
+          ) : completeMut.isPending ? "Saving…" : "Finish workout"}
+        </button>
       </div>
 
       {activeIdx !== null && (
