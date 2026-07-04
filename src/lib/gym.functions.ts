@@ -976,7 +976,8 @@ export const generateFourWeekPlan = createServerFn({ method: "POST" })
       if (wErr) throw new Error(wErr.message);
       if (i === 0) firstWeekId.push(wRow.id);
 
-      const daysRows = w.days.map((d) => {
+      const reindexedWDays = reindexDaysSkipSunday(w.days, weekStartIso);
+      const daysRows = reindexedWDays.map((d) => {
         const hydrated = d.exercises.map((p) => {
           const cat = byId.get(p.exerciseId);
           const name = cat?.name ?? p.exerciseId;
