@@ -355,7 +355,7 @@ function HomePage() {
           <div className="text-xs text-[var(--text-secondary)] mt-0.5">
             {(stats?.currentStreak ?? 0) === 0
               ? "Start your streak — do today's workout"
-              : `Longest: ${stats?.longestStreak ?? 0} days · ${doneDays}/${totalDays} this week`}
+              : `Longest: ${pluralize(stats?.longestStreak ?? 0, "day")} · ${doneDays}/${totalDays} this week`}
           </div>
         </div>
         {/* Gym Check-in button */}
