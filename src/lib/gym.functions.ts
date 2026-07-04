@@ -546,6 +546,9 @@ export const submitWeekReview = createServerFn({ method: "POST" })
       const { evaluateAndNotifyAchievements } = await import("./push.functions");
       await evaluateAndNotifyAchievements(supabase, userId);
     } catch (err) {
+      console.warn("[achievements] notify failed", err);
+    }
+
     // Award XP for weekly review — idempotent via dedupe key on the unique index
     // (user_id, dedupe_key) in xp_transactions. Re-submitting the same week returns 0 XP.
     let xpResult: { xpAwarded: number; bonusTriggered: boolean; alreadyAwarded?: boolean } | null = null;
