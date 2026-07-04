@@ -176,7 +176,7 @@ function ProfilePage() {
         <StatCard label="Weeks started" value={String(stats.weeksStarted)} accent="var(--neon-orange)" />
         <StatCard label="Weeks done" value={String(stats.weeksDone)} accent="var(--neon-green)" />
         <StatCard label="Avg completion" value={`${stats.avgCompletion}%`} accent="var(--neon-amber)" />
-        <StatCard label="Reviews done" value={String(stats.reviewsDone)} accent="var(--neon-blue)" />
+        <StatCard label={stats.reviewsDone === 1 ? "Review done" : "Reviews done"} value={String(stats.reviewsDone)} accent="var(--neon-blue)" />
       </div>
 
       {/* Notifications */}
