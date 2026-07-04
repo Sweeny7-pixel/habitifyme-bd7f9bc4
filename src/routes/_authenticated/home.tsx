@@ -555,6 +555,14 @@ function HomePage() {
           {activeDays.map((d, i) => {
             const done = !!d.completed_at;
             const exCount = Array.isArray(d.exercises_json) ? d.exercises_json.length : 0;
+            const dateIso = d.workout_date
+              ?? (activeWeek.start_date ? shortDateLabel(activeWeek.start_date).replace(/^.+· /, "") : null);
+            const dateLabel = d.workout_date
+              ? shortDateLabel(d.workout_date)
+              : activeWeek.start_date
+                ? shortDateLabel(activeWeek.start_date)
+                : null;
+            void dateIso;
             return (
               <Link
                 key={d.id}
@@ -570,7 +578,7 @@ function HomePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-[var(--text-primary)] truncate">{d.title}</p>
                   <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-                    {d.focus} · {exCount} exercises
+                    {dateLabel ? `${dateLabel} · ` : ""}Day {d.day_index} · {d.focus} · {exCount} ex
                   </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-[var(--text-muted)] shrink-0" />
