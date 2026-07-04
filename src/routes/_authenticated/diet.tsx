@@ -107,10 +107,27 @@ function DietPage() {
 function WeekDietView({ weekId }: { weekId: string }) {
   const qc = useQueryClient();
   const getDietFn = useServerFn(getWeekDiet);
+  const logDietFn = useServerFn(logDietDay);
+  const getDietLogFn = useServerFn(getTodayDietLog);
   const dietQ = useQuery({
     queryKey: ["weekDiet", weekId],
     queryFn: () => getDietFn({ data: { weekId } }),
     retry: 1,
+  });
+  const dietLogQ = useQuery({
+    queryKey: ["dietLogToday"],
+    queryFn: () => getDietLogFn(),
+    staleTime: 60_000,
+  });
+  const logDietMut = useMutation({
+    mutationFn: () => logDietFn({ data: {} }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["dietLogToday"] });
+      qc.invalidateQueries({ queryKey: ["homeHabitStats"] });
+      if (res.alreadyLogged) toast.info("Already logged today 👍");
+      else toast.success(`Diet logged! +${res.xpAwarded} XP 🥗`);
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const [dayIdx, setDayIdx] = useState<number>(() => todayIndex());
