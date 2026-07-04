@@ -1,0 +1,743 @@
+Below is a good `plan.md` that you can place in the root of your Replit project. It is designed as an implementation roadmap that an AI coding agent (Replit Agent) can execute step-by-step.
+
+It combines the existing HabitifyMe PRD, the build log, and the new Habit Formation Engine into a single V4 roadmap focused on **behavioral psychology, XP, retention, and habit formation**, instead of simply adding more features.
+
+```md
+# HabitifyMe V4 Implementation Plan
+## Habit Formation Engine + XP System
+
+## Objective
+
+Transform HabitifyMe from an AI workout planner into a true habit-building platform.
+
+Current app:
+- AI workout planning
+- Adaptive weekly workouts
+- Diet planning
+- Workout logging
+- Weekly review
+
+New goal:
+Build an addiction loop using
+
+Trigger
+→ Action
+→ Reward
+→ Investment
+→ Repeat
+
+based on BJ Fogg, Hook Model, Atomic Habits and the Habit Formation PRD.
+
+---
+
+# North Star
+
+Increase Week 4 completion rate.
+
+Secondary metrics
+
+- Day 2 retention
+- Day 7 retention
+- Day 14 retention
+- Workout completion
+- Weekly review completion
+- Check-in frequency
+- Habit Score improvement
+- XP earned per week
+
+---
+
+# IMPORTANT
+
+Do NOT redesign the application.
+
+Preserve
+
+- Existing navigation
+- Existing dark glass UI
+- Existing workout generation
+- Existing onboarding
+- Existing workout pages
+
+This project is an enhancement of the existing application.
+
+Always reuse existing components before creating new ones.
+
+---
+
+# Phase 1
+## Read Existing Project
+
+First inspect
+
+- PRD
+- Current routes
+- Components
+- Database schema
+- Existing Supabase functions
+
+Understand
+
+Current workout flow
+
+Current weekly review
+
+Current calendar
+
+Current progress tracking
+
+Current push notification implementation
+
+Do not modify anything yet.
+
+---
+
+# Phase 2
+## Build XP Engine
+
+Create a centralized XP service.
+
+Never calculate XP inside UI components.
+
+Create
+
+lib/xp.ts
+
+Expose
+
+awardXP()
+
+deductXP()
+
+getCurrentLevel()
+
+getLevelProgress()
+
+getXPHistory()
+
+Every XP transaction must be saved.
+
+Database
+
+xp_transactions
+
+Fields
+
+id
+
+user_id
+
+reason
+
+amount
+
+created_at
+
+metadata
+
+---
+
+## XP Rules
+
+Workout Complete
+
++50 XP
+
+Gym Check-in
+
++20 XP
+
+Weekly Review
+
++40 XP
+
+7 Day Streak
+
++150 XP
+
+Profile Completion
+
++25 XP
+
+Sunday Planning
+
++30 XP
+
+Diet Logging
+
++15 XP
+
+Bonus Surprise
+
+10% chance
+
++150 XP
+
+Never hardcode XP values.
+
+Keep configurable.
+
+---
+
+# Phase 3
+## Level System
+
+Create levels
+
+Level 1
+
+0 XP
+
+Level 2
+
+150 XP
+
+Level 3
+
+400 XP
+
+Level 4
+
+800 XP
+
+Level 5
+
+1400 XP
+
+Continue exponentially.
+
+Every level unlocks
+
+- celebration animation
+- badge
+- motivational copy
+
+---
+
+# Phase 4
+## Habit Score
+
+Create
+
+Habit Score
+
+0-100
+
+Calculated nightly.
+
+Weights
+
+Workout Completion
+
+40%
+
+Gym Check-ins
+
+25%
+
+Diet Logging
+
+20%
+
+Weekly Review
+
+15%
+
+Rolling window
+
+7 days
+
+30 days
+
+Store
+
+habit_score
+
+history
+
+trend
+
+Never compute inside frontend.
+
+---
+
+# Phase 5
+## Habit Dashboard
+
+Extend Home Screen
+
+Show
+
+Habit Score
+
+Weekly XP
+
+Current Level
+
+XP Progress Bar
+
+Today's Habit Status
+
+Consistency
+
+Weekly graph
+
+Recent achievements
+
+Keep visual hierarchy minimal.
+
+---
+
+# Phase 6
+## Gym Check-In
+
+Add
+
+Quick Check-In button
+
+Home screen
+
+One tap.
+
+Records
+
+time
+
+location (optional)
+
+date
+
+Feeds
+
+Habit Score
+
+XP
+
+Retention metrics
+
+Do NOT require workout logging.
+
+---
+
+# Phase 7
+## Trigger Engine
+
+Enhance onboarding.
+
+Capture
+
+Preferred workout time
+
+Workout days
+
+Reminder preference
+
+Timezone
+
+Notification strategy
+
+30 min before workout
+
+Missed workout reminder
+
+3 day recovery
+
+7 day restart
+
+14 day restart
+
+Fresh Week restart
+
+---
+
+# Phase 8
+## Recovery Flow
+
+If inactive
+
+3 days
+
+Offer
+
+15 minute workout
+
+Easy XP
+
+Motivation
+
+Ask
+
+"What prevented today's workout?"
+
+Capture
+
+Free text
+
+Reason category
+
+Store analytics.
+
+---
+
+# Phase 9
+## Sunday Planning
+
+Every Sunday evening
+
+Prompt
+
+Ready for next week's plan?
+
+Allow
+
+Travel mode
+
+Unavailable days
+
+Regenerate plan
+
+Award XP
+
+---
+
+# Phase 10
+## Surprise Rewards
+
+Implement randomness
+
+10% chance
+
+Reward
+
+Bonus XP
+
+Rare badge
+
+Confetti
+
+Never predictable.
+
+---
+
+# Phase 11
+## Achievements
+
+Create badge engine
+
+Examples
+
+First Workout
+
+3 Day Streak
+
+7 Day Streak
+
+Week Complete
+
+10 Workouts
+
+1000 XP
+
+Perfect Week
+
+Habit Champion
+
+Badges are permanent.
+
+---
+
+# Phase 12
+## Offline Support
+
+Cache
+
+Current workout
+
+Current diet
+
+Weekly plan
+
+Allow logging offline.
+
+Sync later.
+
+---
+
+# Phase 13
+## Analytics
+
+Track
+
+notification_opened
+
+checkin_completed
+
+workout_started
+
+workout_completed
+
+xp_awarded
+
+badge_unlocked
+
+habit_score_updated
+
+weekly_review_submitted
+
+plan_regenerated
+
+restart_clicked
+
+recovery_prompt_opened
+
+Store events.
+
+---
+
+# Phase 14
+## Segmentation
+
+Automatically classify users
+
+0-20
+
+At Risk
+
+Unlock
+
+Easy workouts
+
+XP multipliers
+
+Recovery prompts
+
+21-60
+
+Building
+
+Normal experience
+
+61-80
+
+Strong Habit
+
+Advanced plans
+
+Leaderboards
+
+81-100
+
+Champion
+
+Referral
+
+Fit Squad
+
+Exclusive badges
+
+---
+
+# Phase 15
+## UI Animations
+
+Small delightful moments
+
+XP popup
+
++50 XP
+
+Confetti
+
+Level up
+
+Badge unlock
+
+Habit Score increase
+
+Never overuse animations.
+
+---
+
+# Phase 16
+## Database
+
+Create
+
+xp_transactions
+
+habit_scores
+
+habit_score_history
+
+checkins
+
+achievements
+
+notification_preferences
+
+user_settings
+
+analytics_events
+
+Indexes
+
+user_id
+
+created_at
+
+---
+
+# Phase 17
+## Edge Functions
+
+Create Supabase Edge Functions
+
+awardXP
+
+calculateHabitScore
+
+sendReminder
+
+weeklyPlanner
+
+recoveryPrompt
+
+achievementEngine
+
+Keep business logic server-side.
+
+---
+
+# Phase 18
+## Refactoring
+
+Remove duplicated XP calculations.
+
+Extract
+
+Reward Engine
+
+Habit Engine
+
+Notification Engine
+
+Analytics Engine
+
+Achievement Engine
+
+---
+
+# Phase 19
+## Testing
+
+Test
+
+Workout completion
+
+XP
+
+Badges
+
+Habit Score
+
+Recovery flow
+
+Notifications
+
+Offline mode
+
+Edge cases
+
+No duplicate XP
+
+No negative score
+
+No multiple rewards
+
+---
+
+# Phase 20
+## Final QA
+
+Verify
+
+Existing PRD still works.
+
+Existing Build Log fixes remain intact.
+
+No regression.
+
+Performance remains smooth.
+
+Mobile responsiveness maintained.
+
+---
+
+# Coding Rules
+
+Always:
+
+✅ Reuse existing components
+
+✅ Keep dark glass design
+
+✅ Keep TypeScript strict
+
+✅ Use Supabase best practices
+
+✅ Prefer composable services
+
+✅ Server-side calculations
+
+✅ Small reusable hooks
+
+Avoid
+
+❌ Massive components
+
+❌ XP logic inside UI
+
+❌ Duplicate database queries
+
+❌ Breaking existing navigation
+
+❌ Hardcoded values
+
+❌ Business logic inside React components
+
+---
+
+# Deliverables
+
+1. XP Engine
+
+2. Habit Score Engine
+
+3. Achievement System
+
+4. Check-in System
+
+5. Trigger Engine
+
+6. Recovery Flow
+
+7. Sunday Planning
+
+8. Analytics
+
+9. Offline Support
+
+10. Dashboard Enhancements
+
+11. Edge Functions
+
+12. Database Migrations
+
+13. Tests
+
+14. Documentation
+
+The goal is to create a sticky, habit-forming experience that improves user retention through behavioral psychology while preserving all existing HabitifyMe functionality documented in the PRD and Build Log.
+```
+
+This plan is aligned with your Habit Formation document's trigger-action-reward-repeat model, extends the existing HabitifyMe roadmap rather than replacing it, and respects the architecture and completed work documented in the PRD and build log.

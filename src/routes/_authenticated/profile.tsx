@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, useEffect } from "react";
 import { getProfile, getAllWeeks, updateAllergies } from "@/lib/gym.functions";
 import { savePushSubscription, deletePushSubscription, sendTestPush } from "@/lib/push.functions";
+import { getAchievements } from "@/lib/achievements";
+import { getTotalXP, getLevelTitle } from "@/lib/xp";
 import {
   pushSupported,
   isIosSafari,
@@ -54,9 +56,13 @@ function ProfilePage() {
   const getProfileFn = useServerFn(getProfile);
   const getAllWeeksFn = useServerFn(getAllWeeks);
   const updateAllergiesFn = useServerFn(updateAllergies);
+  const getAchievementsFn = useServerFn(getAchievements);
+  const getTotalXPFn = useServerFn(getTotalXP);
 
   const profileQ = useQuery({ queryKey: ["profile"], queryFn: () => getProfileFn() });
   const weeksQ = useQuery({ queryKey: ["allWeeks"], queryFn: () => getAllWeeksFn() });
+  const achievementsQ = useQuery({ queryKey: ["achievements"], queryFn: () => getAchievementsFn(), staleTime: 30_000 });
+  const xpQ = useQuery({ queryKey: ["totalXP"], queryFn: () => getTotalXPFn(), staleTime: 30_000 });
 
   const [tags, setTags] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
@@ -176,31 +182,82 @@ function ProfilePage() {
       {/* Notifications */}
       <NotificationsSection />
 
-      {/* Achievements */}
+      {/* XP & Level */}
+      {xpQ.data && (
+        <div className="glass-card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div
+                className="grid h-8 w-8 place-items-center rounded-xl text-sm font-extrabold"
+                style={{
+                  background: "rgba(166,123,255,0.15)",
+                  border: "1px solid rgba(166,123,255,0.35)",
+                  color: "var(--neon-purple)",
+                }}
+              >
+                {xpQ.data.level}
+              </div>
+              <div>
+                <div className="text-sm font-extrabold text-[var(--text-primary)]">
+                  {xpQ.data.title}
+                </div>
+                <div className="text-[10px] text-[var(--text-muted)]">
+                  {xpQ.data.totalXP.toLocaleString()} XP total
+                </div>
+              </div>
+            </div>
+            <div className="text-xs font-extrabold" style={{ color: "var(--neon-purple)" }}>
+              {xpQ.data.progress}%
+            </div>
+          </div>
+          <div className="prog-bar">
+            <div
+              className="h-full transition-all"
+              style={{
+                width: `${xpQ.data.progress}%`,
+                background: "var(--neon-purple)",
+                boxShadow: "0 0 10px rgba(166,123,255,0.45)",
+              }}
+            />
+          </div>
+          <div className="text-[10px] text-[var(--text-muted)] mt-1">
+            {xpQ.data.currentXP} / {xpQ.data.nextLevelXP} XP to Level {xpQ.data.level + 1} — {getLevelTitle(xpQ.data.level + 1)}
+          </div>
+        </div>
+      )}
 
+      {/* Achievements */}
       <section>
         <div className="sec-label mb-2 flex items-center gap-1.5">
           <Award className="h-3.5 w-3.5" /> Achievements
         </div>
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { label: "First Week", unlocked: stats.weeksDone >= 1, icon: "🌱" },
-            { label: "4-Week Streak", unlocked: stats.weeksDone >= 4, icon: "🔥" },
-            { label: "80%+ Avg", unlocked: stats.avgCompletion >= 80, icon: "🏆" },
-            { label: "Review Pro", unlocked: stats.reviewsDone >= 3, icon: "⭐" },
-          ].map((a) => (
-            <div
-              key={a.label}
-              className={a.unlocked ? "achievement-badge-unlocked" : "achievement-badge-locked"}
-              title={a.label}
-            >
-              <div className="text-2xl leading-none">{a.icon}</div>
-              <div className="mt-1 text-[9px] font-bold uppercase tracking-wider leading-tight text-center">
-                {a.label}
+        {achievementsQ.isLoading ? (
+          <div className="grid grid-cols-4 gap-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="aspect-square animate-pulse rounded-2xl bg-white/5" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-2">
+            {(achievementsQ.data ?? []).map((a) => (
+              <div
+                key={a.key}
+                className={a.unlocked ? "achievement-badge-unlocked" : "achievement-badge-locked"}
+                title={`${a.label}: ${a.description}`}
+              >
+                <div className="text-2xl leading-none">{a.icon}</div>
+                <div className="mt-1 text-[9px] font-bold uppercase tracking-wider leading-tight text-center">
+                  {a.label}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+        {achievementsQ.data && achievementsQ.data.filter((a) => a.unlocked).length > 0 && (
+          <p className="mt-2 text-[10px] text-[var(--text-muted)]">
+            {achievementsQ.data.filter((a) => a.unlocked).length} / {achievementsQ.data.length} badges unlocked
+          </p>
+        )}
       </section>
 
       {/* Details */}

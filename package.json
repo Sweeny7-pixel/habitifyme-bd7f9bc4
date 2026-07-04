@@ -8,6 +8,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
+    "test": "bun test",
+    "test:xp": "bun test test/xp-idempotency.test.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "enrich:exercises": "node scripts/enrich-exercises.mjs",

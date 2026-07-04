@@ -431,12 +431,47 @@ export const completeWorkoutDay = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ dayId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error } = await supabase
+
+    // Atomic conditional update: only matches rows where completed_at IS NULL.
+    // Returns the affected row IDs so we can confirm exactly one transition occurred.
+    // If two concurrent requests race, only the first UPDATE finds completed_at IS NULL
+    // and gets a row back — the second gets an empty array and skips XP.
+    const { data: updated, error } = await supabase
       .from("workout_days")
       .update({ completed_at: new Date().toISOString() })
-      .eq("id", data.dayId).eq("user_id", userId);
+      .eq("id", data.dayId)
+      .eq("user_id", userId)
+      .is("completed_at", null)
+      .select("id");
     if (error) throw new Error(error.message);
-    return { ok: true };
+
+    if (!updated || updated.length === 0) {
+      // Row was already completed (either pre-existing or a concurrent request won the race)
+      return { ok: true, xpAwarded: 0, bonusTriggered: false };
+    }
+
+    // Award XP for workout completion
+    let xpResult: { xpAwarded: number; bonusTriggered: boolean } | null = null;
+    try {
+      const { awardXPInternal, XP_RULES } = await import("./xp");
+      xpResult = await awardXPInternal(supabase, userId, "WORKOUT_COMPLETE", XP_RULES.WORKOUT_COMPLETE, { dayId: data.dayId });
+    } catch (err) {
+      console.warn("[xp] workout award failed", err);
+    }
+
+    // Evaluate achievements
+    try {
+      const { checkAndUnlockAchievements } = await import("./achievements");
+      await checkAndUnlockAchievements(supabase, userId);
+    } catch (err) {
+      console.warn("[achievements] check failed", err);
+    }
+
+    // Analytics (fire-and-forget)
+    const { trackEvent } = await import("./analytics").catch(() => ({ trackEvent: () => {} }));
+    trackEvent(supabase, userId, "workout_completed", { dayId: data.dayId });
+
+    return { ok: true, xpAwarded: xpResult?.xpAwarded ?? 0, bonusTriggered: xpResult?.bonusTriggered ?? false };
   });
 
 // Resets the user's plan: clears completed_at on every workout day and
@@ -498,7 +533,42 @@ export const submitWeekReview = createServerFn({ method: "POST" })
       console.warn("[achievements] notify failed", err);
     }
 
-    return { ok: true, completion_pct };
+    // Award XP for weekly review — idempotent via dedupe key on the unique index
+    // (user_id, dedupe_key) in xp_transactions. Re-submitting the same week returns 0 XP.
+    let xpResult: { xpAwarded: number; bonusTriggered: boolean; alreadyAwarded?: boolean } | null = null;
+    try {
+      const { awardXPInternal, XP_RULES } = await import("./xp");
+      xpResult = await awardXPInternal(
+        supabase,
+        userId,
+        "WEEKLY_REVIEW",
+        XP_RULES.WEEKLY_REVIEW,
+        { weekId: data.week_id, completion_pct },
+        `WEEKLY_REVIEW:${data.week_id}`,
+      );
+    } catch (err) {
+      console.warn("[xp] review award failed", err);
+    }
+
+    // Check achievements after review
+    try {
+      const { checkAndUnlockAchievements } = await import("./achievements");
+      await checkAndUnlockAchievements(supabase, userId);
+    } catch (err) {
+      console.warn("[achievements] post-review check failed", err);
+    }
+
+    // Analytics (fire-and-forget)
+    const { trackEvent } = await import("./analytics").catch(() => ({ trackEvent: () => {} }));
+    trackEvent(supabase, userId, "weekly_review_submitted", { weekId: data.week_id, completion_pct });
+
+    return {
+      ok: true,
+      completion_pct,
+      xpAwarded: xpResult?.xpAwarded ?? 0,
+      bonusTriggered: xpResult?.bonusTriggered ?? false,
+      alreadyAwarded: xpResult?.alreadyAwarded ?? false,
+    };
   });
 
 

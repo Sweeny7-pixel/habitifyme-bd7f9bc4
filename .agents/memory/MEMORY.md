@@ -1,0 +1,3 @@
+- [Vite host config](vite-host-config.md) — Replit needs host 0.0.0.0:5000; Lovable defaults to IPv6 8080 which fails.
+- [XP engine design](xp-engine-design.md) — Client never supplies XP amounts; idempotency must be DB-enforced, not application-layer.
+- [V4 habit engine](v4-habit-engine.md) — V4 tables require two sequential migrations; keep all duplicate-award prevention at the DB layer.

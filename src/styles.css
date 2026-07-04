@@ -748,3 +748,34 @@ select option {
   background-color: #1a1d22;
   color: #ffffff;
 }
+
+/* ── XP Popup animation ── */
+.xp-popup-root {
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  animation: xp-rise 1.8s ease forwards;
+}
+
+@keyframes xp-rise {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.85); }
+  15%  { opacity: 1; transform: translateY(0)  scale(1); }
+  75%  { opacity: 1; transform: translateY(-8px) scale(1); }
+  100% { opacity: 0; transform: translateY(-24px) scale(0.9); }
+}
+
+.xp-popup-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  background: rgba(166, 123, 255, 0.18);
+  border: 1px solid rgba(166, 123, 255, 0.45);
+  color: var(--neon-purple);
+  box-shadow: 0 0 20px rgba(166, 123, 255, 0.35);
+  white-space: nowrap;
+}
+
