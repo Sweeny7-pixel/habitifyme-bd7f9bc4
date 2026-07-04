@@ -281,7 +281,17 @@ function HomePage() {
 
   if (!activeWeek) return null;
   const diet = activeWeek.diet_json as DietJson | null;
-  const dietStats = getTodayDietStats(activeWeek.diet_json, activeWeek.start_date);
+  // Fetch the canonical week diet so Home matches Diet/Calendar exactly (BUG-015).
+  // Same query key as the Diet screen → shared cache, no extra round-trip after
+  // the user has visited either surface.
+  const dietFn = useServerFn(getWeekDiet);
+  const weekDietQ = useQuery({
+    queryKey: ["weekDiet", activeWeek.id],
+    queryFn: () => dietFn({ data: { weekId: activeWeek.id } }),
+    staleTime: 60_000,
+  });
+  const dietSource = weekDietQ.data?.diet ?? activeWeek.diet_json;
+  const dietStats = getTodayDietStats(dietSource, activeWeek.start_date);
   const totalDays = activeDays.length;
   const doneDays = activeDays.filter((d) => d.completed_at).length;
   const allDone = doneDays === totalDays && totalDays > 0;
@@ -289,6 +299,9 @@ function HomePage() {
 
   const stats = habitStatsQ.data;
   const checkedInToday = stats?.checkedInToday ?? false;
+  // BUG-021: a brand-new user with zero completed workouts should not be
+  // labelled "At Risk" — show the neutral "Building" segment instead.
+  const isBrandNew = !!stats && stats.habitScore === 0 && !stats.lastWorkoutAt;
 
   return (
     <div className="space-y-4 pt-2">
