@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getAllWeeks } from "@/lib/gym.functions";
-import { Loader2, Award } from "lucide-react";
+import { Loader2, Award, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/progress")({
   head: () => ({
@@ -37,6 +37,13 @@ function ProgressPage() {
 
   return (
     <div className="space-y-4 pt-2">
+      <Link
+        to="/profile"
+        className="inline-flex items-center gap-1.5 text-sm font-bold text-[color:var(--text-mid)] hover:text-[color:var(--text-dark)]"
+      >
+        <ArrowLeft className="h-4 w-4" /> Back to profile
+      </Link>
+  
       <div>
         <h1 className="text-[22px] font-extrabold tracking-tight text-[color:var(--text-dark)] leading-tight">
           Progress
