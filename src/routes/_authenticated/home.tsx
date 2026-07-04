@@ -376,16 +376,18 @@ function HomePage() {
           )}
           {checkedInToday ? "In" : "Check-in"}
         </button>
-        <span
-          className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider"
-          style={{
-            background: "rgba(255,184,48,0.12)",
-            borderColor: "rgba(255,184,48,0.35)",
-            color: "var(--neon-amber)",
-          }}
-        >
-          <Trophy className="h-2.5 w-2.5" /> Personal best
-        </span>
+        {stats && stats.currentStreak > 0 && stats.currentStreak === stats.longestStreak && (
+          <span
+            className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider"
+            style={{
+              background: "rgba(255,184,48,0.12)",
+              borderColor: "rgba(255,184,48,0.35)",
+              color: "var(--neon-amber)",
+            }}
+          >
+            <Trophy className="h-2.5 w-2.5" /> Personal best
+          </span>
+        )}
       </div>
 
       {/* XP Level Card */}
