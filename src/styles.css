@@ -229,7 +229,7 @@
   width: 100%;
   max-width: 480px;
   min-width: 320px;
-  height: 100%;
+  height: 100dvh;
   margin-inline: auto;
   background-image: var(--bg-mesh);
   background-color: var(--bg-base);
