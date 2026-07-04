@@ -50,6 +50,7 @@ export const getHomeHabitStats = createServerFn({ method: "GET" })
         .select("amount")
         .eq("user_id", userId)
         .gte("created_at", weekAgo),
+      getStreakInternal(supabase, userId),
     ]);
 
     const levelInfo = getLevelProgress(totalXP);
@@ -75,5 +76,8 @@ export const getHomeHabitStats = createServerFn({ method: "GET" })
       segment,
       recentAchievements,
       weeklyXP,
+      currentStreak: streak.current,
+      longestStreak: streak.longest,
+      lastWorkoutAt: streak.lastCompletedAt,
     };
   });
