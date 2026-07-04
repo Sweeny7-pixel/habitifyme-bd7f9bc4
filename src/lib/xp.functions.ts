@@ -31,7 +31,7 @@ export async function awardXPInternal(
     metadata?: Record<string, unknown>;
   },
 ): Promise<{ awarded: number; bonus: number }> {
-  const amount = XP_REWARDS[input.reason];
+  const amount: number = XP_REWARDS[input.reason];
   const row = {
     user_id: userId,
     reason: input.reason,
@@ -41,7 +41,7 @@ export async function awardXPInternal(
   };
 
   const { error } = await supabase.from("xp_transactions").insert(row);
-  let awarded = amount;
+  let awarded: number = amount;
   if (error) {
     // Unique-violation on dedupe key = already awarded; treat as no-op.
     if (error.code === "23505") awarded = 0;
