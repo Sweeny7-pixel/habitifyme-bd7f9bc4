@@ -309,7 +309,7 @@ function WeekNav({
 }
 
 function WeekStrip({
-  /* anchor day used as the Monday-of-week origin for the strip */
+  /* Day 1 of the rolling week — the active week's start_date. */
   anchor,
   selected,
   setSelected,
@@ -322,8 +322,7 @@ function WeekStrip({
   dateToDay: Map<string, { id: string; completed_at: string | null }>;
   today: Date;
 }) {
-  const start = useMemo(() => startOfWeekMon(anchor), [anchor]);
-  const cells = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
+  const cells = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(anchor, i)), [anchor]);
 
   return (
     <div className="grid grid-cols-7 gap-1.5">
@@ -339,7 +338,7 @@ function WeekStrip({
         return (
           <button key={i} onClick={() => setSelected(d)} className={cls}>
             <div className={`text-[9px] font-bold uppercase tracking-wider ${isSelected ? "text-[var(--neon-orange)]" : done ? "text-[var(--neon-green)]" : "text-[var(--text-muted)]"}`}>
-              {DAY_SHORT[i]}
+              {weekdayShortLabel(d)}
             </div>
             <div className={`text-[13px] font-extrabold mt-0.5 ${isSelected ? "text-[var(--text-primary)]" : done ? "text-[var(--neon-green)]" : "text-[var(--text-primary)]"}`}>
               {d.getDate()}
@@ -369,8 +368,9 @@ function WeeklyProgressCard({
   anchor: Date;
   dateToDay: Map<string, { id: string; completed_at: string | null }>;
 }) {
-  const start = useMemo(() => startOfWeekMon(anchor), [anchor]);
-  const week = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
+  // Rolling 7-day window starting at the active week's start_date, matching
+  // the WeekStrip above and the Home screen's counter.
+  const week = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(anchor, i)), [anchor]);
   const scheduled = week.filter((d) => dateToDay.get(d.toDateString())).length;
   const completed = week.filter((d) => dateToDay.get(d.toDateString())?.completed_at).length;
   const pct = scheduled ? Math.round((completed / scheduled) * 100) : 0;
