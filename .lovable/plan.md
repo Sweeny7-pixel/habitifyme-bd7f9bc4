@@ -1,43 +1,58 @@
-## QA Test Pass — HabitifyMe
+## Fix QA bugs from 4 Jul report
 
-Act as Senior QA. No code fixes. Deliverable = one Bug Log ordered by severity + a Pass/Fail/N/A row for every checklist item.
+Targeted fixes for the QA-reported bugs. No schema changes.
 
-### Approach
+### BUG-002 · /auth hydration mismatch (Critical)
+File: `src/routes/auth.tsx`
+- Default `mode` state to `"signin"` so the initial React render matches the SSR shell and the visible "Sign in" button actually calls `signInWithPassword`.
+- Keep the "New here? Create account" toggle so signup is still one tap away.
 
-1. **Read the full checklist** (`/mnt/user-uploads/HabitifyMe_UI_Test_Checklist_1.md`, all 174 lines) so every one of the ~90 rows gets an outcome.
-2. **Drive the live app via Playwright** (headless Chromium, 390×844 mobile viewport to match the current preview, plus a 1280×1800 desktop pass for responsive checks) against `http://localhost:8080`.
-   - The six test accounts are managed Supabase logins; `LOVABLE_BROWSER_AUTH_STATUS` in this sandbox is `signed_out` for them (only the previewer's session gets pre-injected). I'll log in through the `/auth` UI using the provided email/password for each account, one per browser context, and reuse `storage_state` between steps for that account.
-   - Per account, walk: Home → Training Days → Workout Detail (open ≥1 day) → Diet → Calendar (week + month) → Profile → Notifications. Screenshot each screen + any bug evidence into `/tmp/browser/qa/<account>/`.
-3. **Exploratory pass** on 1–2 accounts: rapid double-tap (Check-in, Mark diet followed, Finish workout), account switching mid-session, browser back/forward, viewport resize, empty/boundary states (new week, day 7, streak 0/1/2+).
-4. **Cross-screen consistency check** per account: dates, week #, workout names, exercise counts, calorie totals, progress % must agree across Home / Training list / Workout detail / Diet / Calendar / Profile. Diff into a small table per account.
-5. **Prioritize ⚠️ rows first** (dates not advancing across weeks, missing Week-3 header, static Shoulders sub-label, etc.), then ❓ rows, then the rest.
-6. **Log every issue** in the exact template the user specified (BUG-ID, Severity, Screen, Account, Steps, Expected, Actual, Evidence path, Related checklist item). Order the final log Critical → Cosmetic.
-7. **Summary header**: total cases run, pass, fail, N/A, and counts by severity.
+### BUG-005 / 006 / 008 · Calendar rolling-week desync (High, shared root)
+File: `src/routes/_authenticated/calendar.tsx`
+Move the Week view off Monday-anchored math and onto `weeks.start_date`:
+- Delete `startOfWeekMon` usage in `WeekStrip`, `WeeklyProgressCard`, and `weekStartMap`.
+- Pass the active week's `start_date` (parsed as local midnight) as the strip anchor; render 7 cells = `start_date + 0..6`.
+- Day labels: derive `Mon/Tue/…` per cell from the actual date (`weekdayShort(iso)`), not the fixed `DAY_SHORT` array.
+- `WeeklyProgressCard`: compute scheduled/completed against the same rolling 7-day window (start_date..+6), so Home and Calendar always agree.
+- On mount / week change, set `selected = today` when today falls inside the active week's window; otherwise `selected = start_date`. Fixes today being outside the visible strip.
+- Month view: leave the grid Monday-anchored (calendar grids are conventionally Mon-first), but continue keying workout dots off `dateToDay` (already rolling-week correct).
+- `SelectedDayPanel` diet offset already uses `weekStartDate`; leave as-is.
 
-### Deliverable shape
+### BUG-015 · Meal calorie totals disagree Home / Diet / Calendar (High)
+Root cause: Home reads `dietStats` from `activeWeek.diet_json` (raw, possibly stale/legacy old-format), while Diet/Calendar call `getWeekDiet` which returns the up-to-date 7-day JSON.
+- Home (`src/routes/_authenticated/home.tsx`): fetch the active week's diet via `getWeekDiet({ weekId: activeWeek.id })` with `useQuery(["weekDiet", activeWeek.id])` (same key Diet uses — cache is shared). Feed its `days[dietIndexForToday(start_date)].totalApproxCalories` into the Calories metric card. Fall back to legacy `daily_calories` only when the fetched diet is not the 7-day format.
+- Calendar `SelectedDayPanel` meals list: it currently shows `meal.items.slice(0,3)` as a preview which can look different from Diet's full list. Change to show the full items list (same as Diet's `MealCard`) so the day content matches Diet exactly.
 
-```
-# HabitifyMe QA Report — <date>
+### BUG-003 · Home plan-description truncates mid-word (High)
+File: `src/routes/_authenticated/home.tsx` (`focus-pill` line ~467)
+- Replace `activeWeek.plan_summary?.slice(0, 38)` with a word-boundary truncation helper (cut at last space ≤ 60 chars, append `…`). Also add `max-w-full break-words` classes so long summaries wrap gracefully instead of being sliced.
 
-## Summary
-- Cases run: X / ~90
-- Pass: X   Fail: X   N/A: X
-- Severity: Critical X · High X · Medium X · Low X · Cosmetic X
+### BUG-011 · "Longest: 1 days" (Medium)
+File: `src/routes/_authenticated/home.tsx` (streak subtitle line ~343)
+- Use a `pluralize(n, "day")` helper → `"1 day"`, `"2 days"`.
 
-## Checklist outcomes
-| # | Title | Result | Note / Bug-ID |
-...
+### BUG-012 · PERSONAL BEST badge always shown (Medium)
+Same file, badge at line ~364.
+- Only render when `stats.currentStreak > 0 && stats.currentStreak === stats.longestStreak`.
 
-## Bug Log (Critical → Cosmetic)
-### [BUG-001] ...
-...
-```
+### BUG-021 · "At Risk" defaulted on for brand-new users (Medium)
+File: `src/routes/_authenticated/home.tsx` — Habit segment pill (line ~469 and elsewhere).
+- Guard segment display: if `stats.habitScore === 0` AND user has zero completed workouts (`stats.lastWorkoutAt == null`), suppress the "At Risk" pill and show the neutral "Building" state (or nothing).
 
-### Notes / assumptions
+### BUG-028 · "1 REVIEWS DONE" (Cosmetic)
+- Grep for the string and swap to `pluralize(n, "review")`. Likely in `src/routes/_authenticated/profile.tsx`.
 
-- No code changes, no migrations, no fixes — read-only + UI interaction only.
-- Secrets rule: the six account passwords were pasted inline by the user; I'll use them only to sign in via Playwright and won't echo them in reports or screenshots.
-- If any account fails to sign in (wrong creds, rate-limit, or empty state that blocks a flow), I'll log that as its own bug and continue with the remaining accounts rather than stopping.
-- Report saved to `/mnt/documents/habitifyme-qa-report-<date>.md` and posted inline in chat.
+### Shared utility
+Add a tiny `src/lib/format.ts` exporting:
+- `pluralize(n, singular, plural?)` → `"1 day"` / `"2 days"`
+- `truncateWords(str, max)` → cuts on last whitespace ≤ max, appends `…`
 
-Approve to switch to build mode and start the test run.
+### Not in scope
+- No DB migration, no server-function signature changes.
+- BUG-001 (overweight4 diet stuck loading) is data-shaped and outside this fix batch — will be triaged separately after these ship.
+
+### Verification
+- Playwright: sign in as `Overweight@gmail.com`, confirm "Sign in" button submits without a 422 in Network tab.
+- On Home + Calendar for the active week, assert the "Weekly progress" counter matches and today's cell is visible in the strip.
+- Home Calories card matches Diet's today total for accounts `overweight3`, `overweight6`.
+- Streak subtitle reads "1 day" for a 1-day streak; PERSONAL BEST hidden at streak 0.
