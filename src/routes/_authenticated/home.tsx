@@ -7,12 +7,14 @@ import {
   getAllPlanWeeks,
   generateFourWeekPlan,
   generatePlanFromPrompt,
+  getWeekDiet,
 } from "@/lib/gym.functions";
 import { gymCheckin } from "@/lib/checkin";
 import { awardSundayPlanningXP } from "@/lib/xp";
 import { getHomeHabitStats } from "@/lib/habit-stats";
 import { ACHIEVEMENT_MAP } from "@/lib/achievements";
 import { dietIndexForToday, shortDateLabel } from "@/lib/plan-dates";
+import { pluralize, truncateWords } from "@/lib/format";
 import { StartDateModal } from "@/components/StartDateModal";
 import {
   CheckCircle2,
@@ -279,7 +281,17 @@ function HomePage() {
 
   if (!activeWeek) return null;
   const diet = activeWeek.diet_json as DietJson | null;
-  const dietStats = getTodayDietStats(activeWeek.diet_json, activeWeek.start_date);
+  // Fetch the canonical week diet so Home matches Diet/Calendar exactly (BUG-015).
+  // Same query key as the Diet screen → shared cache, no extra round-trip after
+  // the user has visited either surface.
+  const dietFn = useServerFn(getWeekDiet);
+  const weekDietQ = useQuery({
+    queryKey: ["weekDiet", activeWeek.id],
+    queryFn: () => dietFn({ data: { weekId: activeWeek.id } }),
+    staleTime: 60_000,
+  });
+  const dietSource = weekDietQ.data?.diet ?? activeWeek.diet_json;
+  const dietStats = getTodayDietStats(dietSource, activeWeek.start_date);
   const totalDays = activeDays.length;
   const doneDays = activeDays.filter((d) => d.completed_at).length;
   const allDone = doneDays === totalDays && totalDays > 0;
@@ -287,6 +299,9 @@ function HomePage() {
 
   const stats = habitStatsQ.data;
   const checkedInToday = stats?.checkedInToday ?? false;
+  // BUG-021: a brand-new user with zero completed workouts should not be
+  // labelled "At Risk" — show the neutral "Building" segment instead.
+  const isBrandNew = !!stats && stats.habitScore === 0 && !stats.lastWorkoutAt;
 
   return (
     <div className="space-y-4 pt-2">
@@ -340,7 +355,7 @@ function HomePage() {
           <div className="text-xs text-[var(--text-secondary)] mt-0.5">
             {(stats?.currentStreak ?? 0) === 0
               ? "Start your streak — do today's workout"
-              : `Longest: ${stats?.longestStreak ?? 0} days · ${doneDays}/${totalDays} this week`}
+              : `Longest: ${pluralize(stats?.longestStreak ?? 0, "day")} · ${doneDays}/${totalDays} this week`}
           </div>
         </div>
         {/* Gym Check-in button */}
@@ -361,16 +376,18 @@ function HomePage() {
           )}
           {checkedInToday ? "In" : "Check-in"}
         </button>
-        <span
-          className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider"
-          style={{
-            background: "rgba(255,184,48,0.12)",
-            borderColor: "rgba(255,184,48,0.35)",
-            color: "var(--neon-amber)",
-          }}
-        >
-          <Trophy className="h-2.5 w-2.5" /> Personal best
-        </span>
+        {stats && stats.currentStreak > 0 && stats.currentStreak === stats.longestStreak && (
+          <span
+            className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider"
+            style={{
+              background: "rgba(255,184,48,0.12)",
+              borderColor: "rgba(255,184,48,0.35)",
+              color: "var(--neon-amber)",
+            }}
+          >
+            <Trophy className="h-2.5 w-2.5" /> Personal best
+          </span>
+        )}
       </div>
 
       {/* XP Level Card */}
@@ -454,19 +471,19 @@ function HomePage() {
               {stats.habitScore}
             </div>
             <div className="text-[8px] text-[var(--text-muted)] mt-0.5 leading-none">
-              {stats.segment.label}
+              {isBrandNew ? "Building" : stats.segment.label}
             </div>
           </div>
         )}
       </div>
 
       {/* Focus */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="focus-pill">
-          <Target className="h-3.5 w-3.5" />{" "}
-          {activeWeek.plan_summary?.slice(0, 38) ?? "Your focus"}
+      <div className="flex items-start gap-2 flex-wrap">
+        <span className="focus-pill max-w-full whitespace-normal break-words leading-snug">
+          <Target className="h-3.5 w-3.5 shrink-0" />{" "}
+          {truncateWords(activeWeek.plan_summary, 60) || "Your focus"}
         </span>
-        {stats && stats.segment.label !== "Building" && (
+        {stats && !isBrandNew && stats.segment.label !== "Building" && (
           <span
             className="glass-pill text-[10px]"
             style={{ color: stats.segment.color, borderColor: `${stats.segment.color}44` }}

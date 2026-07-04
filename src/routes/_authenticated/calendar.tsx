@@ -25,13 +25,19 @@ export const Route = createFileRoute("/_authenticated/calendar")({
   component: CalendarPage,
 });
 
-const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+// Month grid stays conventionally Monday-first for the calendar-style layout.
+const MONTH_DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type Exercise = { name: string; primaryMuscles?: string[]; equipment?: string | null };
+
+/** Weekday short label for a Date object, e.g. "Sat". */
+function weekdayShortLabel(d: Date): string {
+  return d.toLocaleDateString("en-US", { weekday: "short" });
+}
 
 function startOfWeekMon(d: Date) {
   const out = new Date(d);
@@ -81,14 +87,14 @@ function CalendarPage() {
   const totalWeeks = weeks.length;
   const currentViewWeek = weeks.find((w) => w.week_number === viewWeekNum) ?? null;
 
-  // Rolling-week model: each workout day carries its own `workout_date`
-  // (set at generation time). We still keep a per-week "Monday of week"
-  // anchor for the week strip UI, derived from `weeks.start_date`.
+  // Rolling-week model: each week's strip is anchored to its own start_date
+  // (Day 1 of the plan) — not the ISO Monday. Legacy weeks without a
+  // start_date fall back to today so they still render.
   const weekStartMap = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof startOfWeekMon>>();
+    const map = new Map<string, Date>();
     weeks.forEach((w) => {
       const base = w.start_date ? parseDbDate(w.start_date) : today;
-      map.set(w.id, startOfWeekMon(base));
+      map.set(w.id, base);
     });
     return map;
   }, [weeks, today]);
@@ -128,13 +134,28 @@ function CalendarPage() {
 
   const selectedDay = dateToDay.get(selected.toDateString()) ?? null;
 
-  // Anchor date the week strip should be centred on: the Monday of the
-  // currently-viewed week (falls back to the selected date).
+  // Anchor date the week strip should be built from: Day 1 (start_date) of the
+  // currently-viewed week (falls back to the selected date for legacy weeks).
   const stripAnchor = useMemo(() => {
     if (!currentViewWeek) return selected;
     const start = weekStartMap.get(currentViewWeek.id);
     return start ?? selected;
   }, [currentViewWeek, weekStartMap, selected]);
+
+  // When the viewed week actually contains today, prefer selecting today so the
+  // user lands on the current day instead of Day 1 of the week.
+  useEffect(() => {
+    if (!currentViewWeek) return;
+    const start = weekStartMap.get(currentViewWeek.id);
+    if (!start) return;
+    const end = addDays(start, 7);
+    if (today >= start && today < end) {
+      setSelected((prev) => (prev >= start && prev < end ? prev : today));
+    } else {
+      setSelected((prev) => (prev >= start && prev < end ? prev : start));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentViewWeek?.id]);
 
   if (planQ.isLoading) {
     return (
@@ -303,7 +324,7 @@ function WeekNav({
 }
 
 function WeekStrip({
-  /* anchor day used as the Monday-of-week origin for the strip */
+  /* Day 1 of the rolling week — the active week's start_date. */
   anchor,
   selected,
   setSelected,
@@ -316,8 +337,7 @@ function WeekStrip({
   dateToDay: Map<string, { id: string; completed_at: string | null }>;
   today: Date;
 }) {
-  const start = useMemo(() => startOfWeekMon(anchor), [anchor]);
-  const cells = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
+  const cells = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(anchor, i)), [anchor]);
 
   return (
     <div className="grid grid-cols-7 gap-1.5">
@@ -333,7 +353,7 @@ function WeekStrip({
         return (
           <button key={i} onClick={() => setSelected(d)} className={cls}>
             <div className={`text-[9px] font-bold uppercase tracking-wider ${isSelected ? "text-[var(--neon-orange)]" : done ? "text-[var(--neon-green)]" : "text-[var(--text-muted)]"}`}>
-              {DAY_SHORT[i]}
+              {weekdayShortLabel(d)}
             </div>
             <div className={`text-[13px] font-extrabold mt-0.5 ${isSelected ? "text-[var(--text-primary)]" : done ? "text-[var(--neon-green)]" : "text-[var(--text-primary)]"}`}>
               {d.getDate()}
@@ -363,8 +383,9 @@ function WeeklyProgressCard({
   anchor: Date;
   dateToDay: Map<string, { id: string; completed_at: string | null }>;
 }) {
-  const start = useMemo(() => startOfWeekMon(anchor), [anchor]);
-  const week = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
+  // Rolling 7-day window starting at the active week's start_date, matching
+  // the WeekStrip above and the Home screen's counter.
+  const week = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(anchor, i)), [anchor]);
   const scheduled = week.filter((d) => dateToDay.get(d.toDateString())).length;
   const completed = week.filter((d) => dateToDay.get(d.toDateString())?.completed_at).length;
   const pct = scheduled ? Math.round((completed / scheduled) * 100) : 0;
@@ -429,7 +450,7 @@ function MonthGrid({
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1 mb-1">
-        {DAY_SHORT.map((d) => (
+        {MONTH_DAY_SHORT.map((d: string) => (
           <div key={d} className="text-[9px] font-bold text-[var(--text-muted)] uppercase text-center">
             {d}
           </div>
@@ -591,12 +612,16 @@ function SelectedDayPanel({
               if (!meal) return null;
               const label = k === "eveningSnack" ? "Snack" : k[0].toUpperCase() + k.slice(1);
               return (
-                <div key={k} className="flex items-center justify-between gap-2 py-2">
-                  <div className="min-w-0">
+                <div key={k} className="flex items-start justify-between gap-2 py-2">
+                  <div className="min-w-0 flex-1">
                     <div className="text-[12px] font-bold text-[var(--text-primary)]">{label}</div>
-                    <div className="text-[11px] text-[var(--text-secondary)] truncate">{meal.items.slice(0, 3).join(", ")}</div>
+                    <ul className="mt-1 space-y-0.5">
+                      {meal.items.map((it, i) => (
+                        <li key={i} className="text-[11px] text-[var(--text-secondary)] leading-snug">• {it}</li>
+                      ))}
+                    </ul>
                   </div>
-                  <span className="kcal-pill">~{meal.approxCalories}</span>
+                  <span className="kcal-pill shrink-0">~{meal.approxCalories}</span>
                 </div>
               );
             })}

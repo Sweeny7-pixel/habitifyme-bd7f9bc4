@@ -16,7 +16,9 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signup");
+  // Default to "signin" so the initial React render matches the SSR shell
+  // (BUG-002 — otherwise the visible "Sign in" button silently POSTed /signup).
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
