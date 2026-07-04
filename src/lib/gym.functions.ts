@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
 import { z } from "zod";
-import { awardXPInternal } from "./xp.functions";
+import { awardXPInternal, XP_RULES } from "./xp";
 
 // ============ Schemas ============
 
