@@ -435,7 +435,7 @@ function MonthGrid({
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1 mb-1">
-        {DAY_SHORT.map((d) => (
+        {MONTH_DAY_SHORT.map((d: string) => (
           <div key={d} className="text-[9px] font-bold text-[var(--text-muted)] uppercase text-center">
             {d}
           </div>
