@@ -228,6 +228,7 @@ function CalendarPage() {
         date={selected}
         day={selectedDay}
         weekId={selectedWeek?.id ?? null}
+        weekStartDate={selectedWeek?.start_date ?? null}
       />
     </div>
   );
