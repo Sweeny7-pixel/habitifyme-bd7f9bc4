@@ -555,14 +555,11 @@ function HomePage() {
           {activeDays.map((d, i) => {
             const done = !!d.completed_at;
             const exCount = Array.isArray(d.exercises_json) ? d.exercises_json.length : 0;
-            const dateIso = d.workout_date
-              ?? (activeWeek.start_date ? shortDateLabel(activeWeek.start_date).replace(/^.+· /, "") : null);
             const dateLabel = d.workout_date
               ? shortDateLabel(d.workout_date)
               : activeWeek.start_date
                 ? shortDateLabel(activeWeek.start_date)
                 : null;
-            void dateIso;
             return (
               <Link
                 key={d.id}
