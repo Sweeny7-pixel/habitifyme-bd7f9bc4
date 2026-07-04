@@ -445,6 +445,15 @@ export const completeWorkoutDay = createServerFn({ method: "POST" })
       .update({ completed_at: new Date().toISOString() })
       .eq("id", data.dayId).eq("user_id", userId);
     if (error) throw new Error(error.message);
+    try {
+      await awardXPInternal(supabase, userId, {
+        reason: "workout_complete",
+        dedupeKey: `workout_day:${data.dayId}`,
+        metadata: { workout_day_id: data.dayId },
+      });
+    } catch (err) {
+      console.warn("[xp] workout_complete award failed", err);
+    }
     return { ok: true };
   });
 
