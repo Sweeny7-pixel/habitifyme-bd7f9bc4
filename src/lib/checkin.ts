@@ -3,6 +3,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { awardXPInternal, XP_RULES } from "./xp";
 
+const IST_TZ = "Asia/Kolkata";
+function todayIstKey(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: IST_TZ });
+}
+
 export const gymCheckin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
