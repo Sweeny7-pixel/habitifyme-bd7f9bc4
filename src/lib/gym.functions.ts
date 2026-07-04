@@ -28,6 +28,33 @@ function buildDatesForWeek(startDateIso: string, dayCount: number): {
   });
 }
 
+/** Return the first `count` day_indices in 1..7 whose weekday (relative to
+ * `startDateIso`) is not Sunday. Sunday is always a rest day, so training
+ * days skip it. `count` is clamped to 6. */
+function pickWorkoutDayIndices(startDateIso: string, count: number): number[] {
+  const capped = Math.max(1, Math.min(6, count));
+  const start = new Date(startDateIso + "T00:00:00");
+  const out: number[] = [];
+  for (let i = 0; i < 7 && out.length < capped; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    if (d.getDay() !== 0 /* Sunday */) out.push(i + 1);
+  }
+  return out;
+}
+
+/** Rewrite AI-returned days so their `day_index` values match the
+ * Sunday-skipping schedule for a week starting on `startDateIso`. Days beyond
+ * the allowed count are dropped, preserving the AI's ordering. */
+function reindexDaysSkipSunday<T extends { day_index: number }>(
+  days: T[],
+  startDateIso: string,
+): T[] {
+  const sorted = [...days].sort((a, b) => a.day_index - b.day_index);
+  const allowed = pickWorkoutDayIndices(startDateIso, sorted.length);
+  return sorted.slice(0, allowed.length).map((d, i) => ({ ...d, day_index: allowed[i] }));
+}
+
 // ============ Schemas ============
 
 // Normalises the free-text allergies field. Treats sentinel words like
