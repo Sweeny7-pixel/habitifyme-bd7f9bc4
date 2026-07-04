@@ -12,6 +12,8 @@ import { gymCheckin } from "@/lib/checkin";
 import { awardSundayPlanningXP } from "@/lib/xp";
 import { getHomeHabitStats } from "@/lib/habit-stats";
 import { ACHIEVEMENT_MAP } from "@/lib/achievements";
+import { dietIndexForToday, shortDateLabel } from "@/lib/plan-dates";
+import { StartDateModal } from "@/components/StartDateModal";
 import {
   CheckCircle2,
   Circle,
@@ -67,7 +69,10 @@ type DietDay = {
 };
 type SevenDayDiet = { days: DietDay[] };
 
-function getTodayDietStats(dietJson: unknown): {
+function getTodayDietStats(
+  dietJson: unknown,
+  weekStartIso: string | null | undefined,
+): {
   calories: number | null;
   proteinG: number | null;
   isNewFormat: boolean;
@@ -75,8 +80,7 @@ function getTodayDietStats(dietJson: unknown): {
   if (!dietJson) return { calories: null, proteinG: null, isNewFormat: false };
   const asNew = dietJson as SevenDayDiet;
   if (Array.isArray(asNew?.days) && asNew.days.length === 7) {
-    const jsDay = new Date().getDay();
-    const idx = (jsDay + 6) % 7;
+    const idx = dietIndexForToday(weekStartIso ?? null);
     const today = asNew.days[idx];
     if (today) {
       const kcal = today.totalApproxCalories;
@@ -153,33 +157,42 @@ function HomePage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
   const [customPrompt, setCustomPrompt] = useState("");
+  // Two-step regenerate: confirm → pick start date → generate.
+  const [startPickerFor, setStartPickerFor] = useState<null | { kind: "regenerate" } | { kind: "prompt"; prompt: string }>(null);
 
   const generate = useMutation({
-    mutationFn: async () => generateFn(),
+    mutationFn: async (startDate: string) => generateFn({ data: { startDate } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["planWeeks"] });
       qc.invalidateQueries({ queryKey: ["currentWeek"] });
       setSelectedWeekNum(null);
       setConfirmOpen(false);
+      setStartPickerFor(null);
       toast.success("Your 4-week plan is ready!");
     },
     onError: (e: Error) => {
       setConfirmOpen(false);
+      setStartPickerFor(null);
       toast.error(e.message);
     },
   });
 
   const generateFromPrompt = useMutation({
-    mutationFn: async (prompt: string) => generatePromptFn({ data: { prompt } }),
+    mutationFn: async ({ prompt, startDate }: { prompt: string; startDate: string }) =>
+      generatePromptFn({ data: { prompt, startDate } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["planWeeks"] });
       qc.invalidateQueries({ queryKey: ["currentWeek"] });
       setSelectedWeekNum(null);
       setPromptOpen(false);
       setCustomPrompt("");
+      setStartPickerFor(null);
       toast.success("Custom plan generated!");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setStartPickerFor(null);
+      toast.error(e.message);
+    },
   });
 
   const checkinMutation = useMutation({
@@ -233,28 +246,40 @@ function HomePage() {
 
   if (weeks.length === 0) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center px-4">
-        <div className="grid h-14 w-14 place-items-center rounded-[18px] bg-[var(--neon-orange)] text-white shadow-[0_0_24px_rgba(255,107,53,0.45)] mb-4">
-          <Sparkles className="h-7 w-7" />
+      <>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center text-center px-4">
+          <div className="grid h-14 w-14 place-items-center rounded-[18px] bg-[var(--neon-orange)] text-white shadow-[0_0_24px_rgba(255,107,53,0.45)] mb-4">
+            <Sparkles className="h-7 w-7" />
+          </div>
+          <h2 className="text-lg font-extrabold text-[var(--text-primary)]">No plan yet</h2>
+          <p className="mt-1 max-w-xs text-sm text-[var(--text-secondary)]">
+            Generate a personalized 4-week training plan based on your profile.
+          </p>
+          <button
+            disabled={generate.isPending}
+            onClick={() => setStartPickerFor({ kind: "regenerate" })}
+            className="glass-btn mt-5 max-w-xs"
+          >
+            {generate.isPending ? "Generating…" : "Generate 4-week plan"}
+          </button>
         </div>
-        <h2 className="text-lg font-extrabold text-[var(--text-primary)]">No plan yet</h2>
-        <p className="mt-1 max-w-xs text-sm text-[var(--text-secondary)]">
-          Generate a personalized 4-week training plan based on your profile.
-        </p>
-        <button
-          disabled={generate.isPending}
-          onClick={() => generate.mutate()}
-          className="glass-btn mt-5 max-w-xs"
-        >
-          {generate.isPending ? "Generating…" : "Generate 4-week plan"}
-        </button>
-      </div>
+
+        <StartDateModal
+          open={startPickerFor?.kind === "regenerate"}
+          onOpenChange={(v) => !v && setStartPickerFor(null)}
+          onConfirm={(iso) => generate.mutate(iso)}
+          busy={generate.isPending}
+          title="When do you want to start?"
+          description="Day 1 of your Week 1 plan will be this date."
+          confirmLabel="Generate my plan"
+        />
+      </>
     );
   }
 
   if (!activeWeek) return null;
   const diet = activeWeek.diet_json as DietJson | null;
-  const dietStats = getTodayDietStats(activeWeek.diet_json);
+  const dietStats = getTodayDietStats(activeWeek.diet_json, activeWeek.start_date);
   const totalDays = activeDays.length;
   const doneDays = activeDays.filter((d) => d.completed_at).length;
   const allDone = doneDays === totalDays && totalDays > 0;
@@ -530,6 +555,11 @@ function HomePage() {
           {activeDays.map((d, i) => {
             const done = !!d.completed_at;
             const exCount = Array.isArray(d.exercises_json) ? d.exercises_json.length : 0;
+            const dateLabel = d.workout_date
+              ? shortDateLabel(d.workout_date)
+              : activeWeek.start_date
+                ? shortDateLabel(activeWeek.start_date)
+                : null;
             return (
               <Link
                 key={d.id}
@@ -545,7 +575,7 @@ function HomePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-[var(--text-primary)] truncate">{d.title}</p>
                   <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-                    {d.focus} · {exCount} exercises
+                    {dateLabel ? `${dateLabel} · ` : ""}Day {d.day_index} · {d.focus} · {exCount} ex
                   </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-[var(--text-muted)] shrink-0" />
@@ -615,7 +645,7 @@ function HomePage() {
         </p>
       </div>
 
-      {/* Confirm regenerate modal */}
+      {/* Confirm regenerate modal → then StartDateModal */}
       {confirmOpen && (
         <Modal onClose={() => setConfirmOpen(false)} title="Regenerate 4-week plan?">
           <p className="text-sm text-[var(--text-secondary)]">
@@ -631,10 +661,13 @@ function HomePage() {
             </button>
             <button
               disabled={generate.isPending}
-              onClick={() => generate.mutate()}
+              onClick={() => {
+                setConfirmOpen(false);
+                setStartPickerFor({ kind: "regenerate" });
+              }}
               className="glass-btn flex-[2]"
             >
-              {generate.isPending ? "Generating…" : "Yes, regenerate"}
+              Choose start date →
             </button>
           </div>
         </Modal>
@@ -676,14 +709,36 @@ function HomePage() {
             </button>
             <button
               disabled={generateFromPrompt.isPending || customPrompt.trim().length < 10}
-              onClick={() => generateFromPrompt.mutate(customPrompt.trim())}
+              onClick={() => {
+                const prompt = customPrompt.trim();
+                setPromptOpen(false);
+                setStartPickerFor({ kind: "prompt", prompt });
+              }}
               className="glass-btn flex-[2]"
             >
-              {generateFromPrompt.isPending ? "Generating…" : "Generate plan"}
+              Choose start date →
             </button>
           </div>
         </Modal>
       )}
+
+      {/* Shared start-date picker (fires after user confirms regenerate/prompt) */}
+      <StartDateModal
+        open={startPickerFor !== null}
+        onOpenChange={(v) => !v && setStartPickerFor(null)}
+        onConfirm={(iso) => {
+          if (startPickerFor?.kind === "regenerate") {
+            generate.mutate(iso);
+          } else if (startPickerFor?.kind === "prompt") {
+            generateFromPrompt.mutate({ prompt: startPickerFor.prompt, startDate: iso });
+          }
+        }}
+        busy={generate.isPending || generateFromPrompt.isPending}
+        title="When do you want to start?"
+        description="Day 1 of your new plan will be this date."
+        confirmLabel="Generate my plan"
+      />
+
 
       {/* Recovery modal (3–6 day gap) */}
       {showRecovery && (

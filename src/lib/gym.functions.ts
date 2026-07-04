@@ -3,6 +3,30 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { awardXPInternal, XP_RULES } from "./xp";
+import {
+  addDaysIso,
+  shortDateLabel,
+  validateStartDate,
+  weekdayShort,
+} from "./plan-dates";
+
+/** Zod schema for the optional start-date field on every generator. */
+const StartDateInput = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .optional();
+
+/** Build the `[{ day_index, date_iso, weekday }]` list for a rolling week. */
+function buildDatesForWeek(startDateIso: string, dayCount: number): {
+  day_index: number;
+  date_iso: string;
+  weekday: string;
+}[] {
+  return Array.from({ length: dayCount }, (_, i) => {
+    const iso = addDaysIso(startDateIso, i);
+    return { day_index: i + 1, date_iso: iso, weekday: weekdayShort(iso) };
+  });
+}
 
 // ============ Schemas ============
 
@@ -190,7 +214,14 @@ const SYSTEM_PROMPT = `You are HabitifyMe, a cautious, encouraging fitness coach
 
 export const generateWeekPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((d: unknown) => z.object({ weekNumber: z.number().int().min(1).max(52) }).parse(d))
+  .validator((d: unknown) =>
+    z
+      .object({
+        weekNumber: z.number().int().min(1).max(52),
+        startDate: StartDateInput,
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { weekNumber } = data;
@@ -204,6 +235,24 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
     const { data: existing } = await supabase
       .from("weeks").select("*").eq("user_id", userId).eq("week_number", weekNumber).maybeSingle();
     if (existing) return { weekId: existing.id };
+
+    // Resolve start_date. Explicit user pick > day-after previous week ends > today.
+    let startDateIso: string;
+    if (data.startDate) {
+      startDateIso = validateStartDate(data.startDate);
+    } else if (weekNumber > 1) {
+      const { data: prevWeek } = await supabase
+        .from("weeks")
+        .select("start_date")
+        .eq("user_id", userId)
+        .eq("week_number", weekNumber - 1)
+        .maybeSingle();
+      startDateIso = prevWeek?.start_date
+        ? addDaysIso(prevWeek.start_date, 7)
+        : validateStartDate(undefined);
+    } else {
+      startDateIso = validateStartDate(undefined);
+    }
 
     // Optionally include previous week summary for adaptation
     let adaptation = "";
@@ -227,7 +276,12 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
       }
     }
 
-    const userPrompt = `Generate Week ${weekNumber} for this user:
+    const scheduleDates = buildDatesForWeek(startDateIso, profile.days_per_week ?? 4);
+
+    const userPrompt = `Generate Week ${weekNumber} for this user. Day 1 starts on ${shortDateLabel(startDateIso)}.
+Use day_index (1..N) as the only day identifier. Do NOT reference weekday names in the JSON.
+Schedule (day_index → date): ${scheduleDates.map((d) => `${d.day_index}=${d.date_iso} (${d.weekday})`).join(", ")}
+
 - Name: ${profile.name}
 - Age: ${profile.age}, Gender: ${profile.gender}
 - Height: ${profile.height_cm}cm, Weight: ${profile.weight_kg}kg
@@ -298,6 +352,7 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
         plan_summary: plan.plan_summary,
         diet_json: plan.diet,
         status: "active",
+        start_date: startDateIso,
       }).select().single();
     if (wErr) throw new Error(wErr.message);
 
@@ -309,6 +364,7 @@ export const generateWeekPlan = createServerFn({ method: "POST" })
       title: d.title,
       focus: d.focus,
       exercises_json: d.exercises,
+      workout_date: addDaysIso(startDateIso, Math.max(0, d.day_index - 1)),
     }));
     const { error: dErr } = await supabase.from("workout_days").insert(daysToInsert);
     if (dErr) throw new Error(dErr.message);
@@ -794,13 +850,22 @@ Return ONLY a JSON object (no markdown) matching:
 
 export const generateFourWeekPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .validator((d: unknown) =>
+    z
+      .object({ startDate: StartDateInput })
+      .optional()
+      .transform((v) => v ?? {})
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
     const { data: profile, error: pErr } = await supabase
       .from("profiles").select("*").eq("id", userId).maybeSingle();
     if (pErr) throw new Error(pErr.message);
     if (!profile) throw new Error("Complete onboarding first");
+
+    const firstStartIso = validateStartDate(data.startDate);
 
     // Load + locally filter catalog
     const catalog = await loadExerciseCatalog();
@@ -838,6 +903,7 @@ export const generateFourWeekPlan = createServerFn({ method: "POST" })
       equipment: profile.equipment, experience: profile.experience,
       injuries: profile.injuries ?? "",
       allergies: normalizeAllergies(profile.allergies),
+      plan_start_date: firstStartIso,
     };
 
     const plan = await callGeminiForFourWeekPlan(profileForPrompt, allowedForPrompt);
@@ -863,6 +929,7 @@ export const generateFourWeekPlan = createServerFn({ method: "POST" })
     for (let i = 0; i < plan.weeks.length; i++) {
       const w = plan.weeks[i];
       const weekNumber = startNum + i;
+      const weekStartIso = addDaysIso(firstStartIso, i * 7);
       const { data: wRow, error: wErr } = await supabase
         .from("weeks").insert({
           user_id: userId,
@@ -870,6 +937,7 @@ export const generateFourWeekPlan = createServerFn({ method: "POST" })
           plan_summary: i === 0 ? plan.plan_summary : `${plan.plan_summary} — Week ${weekNumber}: ${w.focus}`,
           diet_json: plan.diet,
           status: i === 0 ? "active" : "upcoming",
+          start_date: weekStartIso,
         }).select().single();
       if (wErr) throw new Error(wErr.message);
       if (i === 0) firstWeekId.push(wRow.id);
@@ -913,6 +981,7 @@ export const generateFourWeekPlan = createServerFn({ method: "POST" })
           title: d.title,
           focus: d.focus,
           exercises_json: hydrated,
+          workout_date: addDaysIso(weekStartIso, Math.max(0, d.day_index - 1)),
         };
       });
       const { error: dErr } = await supabase.from("workout_days").insert(daysRows);
@@ -921,6 +990,7 @@ export const generateFourWeekPlan = createServerFn({ method: "POST" })
 
     return { ok: true, weeks: plan.weeks.length, firstWeekId: firstWeekId[0] ?? null };
   });
+
 
 export const getAllPlanWeeks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -1041,7 +1111,7 @@ Return ONLY a JSON object (no markdown, no backticks) matching:
 export const generatePlanFromPrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) =>
-    z.object({ prompt: z.string().min(10).max(500) }).parse(d),
+    z.object({ prompt: z.string().min(10).max(500), startDate: StartDateInput }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -1136,6 +1206,8 @@ export const generatePlanFromPrompt = createServerFn({ method: "POST" })
     const startNum =
       Math.max(0, ...(completedWeeks ?? []).map((w) => w.week_number ?? 0)) + 1;
 
+    const weekStartIso = validateStartDate(data.startDate);
+
     const { data: wRow, error: wErr } = await supabase
       .from("weeks")
       .insert({
@@ -1144,6 +1216,7 @@ export const generatePlanFromPrompt = createServerFn({ method: "POST" })
         plan_summary: plan.plan_summary,
         diet_json: plan.diet,
         status: "active",
+        start_date: weekStartIso,
       })
       .select()
       .single();
@@ -1156,6 +1229,7 @@ export const generatePlanFromPrompt = createServerFn({ method: "POST" })
       title: d.title,
       focus: d.focus,
       exercises_json: d.exercises_json as unknown as Json,
+      workout_date: addDaysIso(weekStartIso, Math.max(0, d.day_index - 1)),
     }));
     const { error: dErr } = await supabase.from("workout_days").insert(daysRows);
     if (dErr) throw new Error(dErr.message);
@@ -1171,7 +1245,9 @@ const MealSchema = z.object({
 });
 
 const DietDaySchema = z.object({
-  day: z.enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]),
+  // Display label only ("Sat", "Mon", "Day 1"…). Not used for scheduling —
+  // index into `days` is the source of truth relative to the week's start_date.
+  day: z.string().optional(),
   isWorkoutDay: z.boolean(),
   meals: z.object({
     breakfast: MealSchema,
@@ -1196,8 +1272,9 @@ function isSevenDayDiet(value: unknown): value is SevenDayDiet {
 
 async function callGeminiForSevenDayDiet(input: {
   profile: Record<string, unknown>;
-  workoutDays: string[];
-  restDayCount: number;
+  workoutDayIndices: number[]; // 1..7 within the week
+  workoutDayTitles: string[];
+  weekStartDateIso: string;
 }): Promise<SevenDayDiet> {
   const { generateText } = await import("ai");
   const { createGeminiProvider } = await import("./ai-gateway.server");
@@ -1205,14 +1282,24 @@ async function callGeminiForSevenDayDiet(input: {
 
   const system = `You are a certified Indian sports nutritionist. You design simple, budget-friendly Indian diet plans for beginner gym-goers. Never give medical advice.`;
 
+  const dates = buildDatesForWeek(input.weekStartDateIso, 7);
+  const scheduleLine = dates
+    .map((d) => {
+      const isWorkout = input.workoutDayIndices.includes(d.day_index);
+      return `Day ${d.day_index} (${d.date_iso}, ${d.weekday})${isWorkout ? " = WORKOUT" : " = REST"}`;
+    })
+    .join(", ");
+  const totalWorkoutDays = input.workoutDayIndices.length;
+
   const prompt = `Generate a 7-day diet plan for the following user.
 
 User profile:
 - Goal: ${input.profile.goal}
 - Weight: ${input.profile.weight_kg}kg, Height: ${input.profile.height_cm}cm, Age: ${input.profile.age}
 - Gender: ${input.profile.gender}
-- Workout sessions this week (${input.workoutDays.length}): ${input.workoutDays.join(", ") || "none"}
-- Rest days this week: ${input.restDayCount}
+- Week starts on ${shortDateLabel(input.weekStartDateIso)}
+- Schedule: ${scheduleLine}
+- Workout sessions this week (${totalWorkoutDays}): ${input.workoutDayTitles.join(", ") || "none"}
 - Allergies / foods to avoid: ${normalizeAllergies(input.profile.allergies as string | null | undefined) || "none"}
 
 STRICT RULES:
@@ -1224,13 +1311,13 @@ STRICT RULES:
 6. Budget-friendly. No expensive ingredients.
 7. Goal = weight loss → slight caloric deficit. Goal = muscle gain → slight caloric surplus.
 8. Respect allergies — NEVER include them in any meal; substitute safely.
-9. Spread the user's workout sessions across the week (Mon..Sun) sensibly; mark each day's isWorkoutDay accordingly. Exactly ${input.workoutDays.length} days must have isWorkoutDay=true.
+9. The 7 entries in the "days" array MUST be in order Day 1..Day 7 (matching the Schedule above). Mark each day's isWorkoutDay to match. Exactly ${totalWorkoutDays} entries must have isWorkoutDay=true.
 
 Return ONLY valid JSON (no markdown, no backticks) matching:
 {
   "days": [
     {
-      "day": "Monday" | ... | "Sunday",
+      "day": string,            // display label such as "Sat" or "Day 1"
       "isWorkoutDay": boolean,
       "meals": {
         "breakfast":    { "items": [string, ...], "approxCalories": number },
@@ -1242,8 +1329,7 @@ Return ONLY valid JSON (no markdown, no backticks) matching:
       "proteinNote": string
     }
   ]
-}
-The "days" array MUST have exactly 7 entries in order Monday..Sunday.`;
+}`;
 
   let text: string;
   try {
@@ -1296,8 +1382,8 @@ export const getWeekDiet = createServerFn({ method: "POST" })
     const { data: days } = await supabase
       .from("workout_days").select("title, focus, day_index")
       .eq("week_id", week.id).order("day_index");
-    const workoutDays = (days ?? []).map((d) => `${d.title} (${d.focus})`);
-    const restDayCount = Math.max(0, 7 - workoutDays.length);
+    const workoutDayIndices = (days ?? []).map((d) => d.day_index);
+    const workoutDayTitles = (days ?? []).map((d) => `${d.title} (${d.focus})`);
 
     const diet = await callGeminiForSevenDayDiet({
       profile: {
@@ -1308,8 +1394,9 @@ export const getWeekDiet = createServerFn({ method: "POST" })
         gender: profile.gender,
         allergies: normalizeAllergies(profile.allergies),
       },
-      workoutDays,
-      restDayCount,
+      workoutDayIndices,
+      workoutDayTitles,
+      weekStartDateIso: week.start_date ?? validateStartDate(undefined),
     });
 
     const { error: uErr } = await supabase

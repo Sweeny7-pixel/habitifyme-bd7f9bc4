@@ -149,23 +149,40 @@ export const awardXP = createServerFn({ method: "POST" })
   });
 
 /**
- * Awards Sunday-planning XP at most once per calendar week.
+ * Awards planning XP at most once per active week. Uses the user's current
+ * `active` week id as the dedupe key so that in the rolling-week model each
+ * new week unlocks one planning-XP award (regardless of calendar week).
  * Idempotency is enforced at the DB level via a unique index on
  * (user_id, dedupe_key) in xp_transactions — concurrent calls silently
- * return 0 XP instead of awarding twice (no application-level TOCTOU race).
+ * return 0 XP instead of awarding twice.
  */
 export const awardSundayPlanningXP = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
-    // ISO week number key, e.g. "SUNDAY_PLANNING:2026-W27"
-    const now = new Date();
-    const jan4 = new Date(now.getUTCFullYear(), 0, 4);
-    const weekNum = Math.ceil(
-      ((now.getTime() - jan4.getTime()) / 86_400_000 + jan4.getUTCDay() + 1) / 7,
-    );
-    const dedupeKey = `SUNDAY_PLANNING:${now.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+    // Prefer the current active week id — rolling-week semantics.
+    const { data: activeWeek } = await supabase
+      .from("weeks")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .order("week_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Fallback to calendar-week key for users with no active week yet (edge case).
+    let dedupeKey: string;
+    if (activeWeek?.id) {
+      dedupeKey = `WEEK_PLANNING:${activeWeek.id}`;
+    } else {
+      const now = new Date();
+      const jan4 = new Date(now.getUTCFullYear(), 0, 4);
+      const weekNum = Math.ceil(
+        ((now.getTime() - jan4.getTime()) / 86_400_000 + jan4.getUTCDay() + 1) / 7,
+      );
+      dedupeKey = `SUNDAY_PLANNING:${now.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+    }
 
     const result = await awardXPInternal(
       supabase,

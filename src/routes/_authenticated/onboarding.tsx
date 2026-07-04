@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { saveProfile, generateWeekPlan, getProfile } from "@/lib/gym.functions";
+import { StartDateModal } from "@/components/StartDateModal";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -41,7 +42,7 @@ function Onboarding() {
   const generate = useServerFn(generateWeekPlan);
   const getMe = useServerFn(getProfile);
   const [submitting, setSubmitting] = useState(false);
-  const [stage, setStage] = useState<"form" | "generating">("form");
+  const [stage, setStage] = useState<"form" | "picking" | "generating">("form");
 
   // If user already has a profile, send them home.
   const existingQ = useQuery({ queryKey: ["profile"], queryFn: () => getMe() });
@@ -67,18 +68,27 @@ function Onboarding() {
     setSubmitting(true);
     try {
       await save({ data: form });
-      // Skip regeneration if already onboarded with a week
       const existing = await getMe();
       if (!existing) throw new Error("Profile save failed");
-      setStage("generating");
-      await generate({ data: { weekNumber: 1 } });
+      // Ask the user when they want Day 1 to start before firing generation.
+      setStage("picking");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleStartDateConfirm(startDate: string) {
+    setStage("generating");
+    try {
+      await generate({ data: { weekNumber: 1, startDate } });
       navigate({ to: "/home" });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed";
       toast.error(msg);
-      setStage("form");
-    } finally {
-      setSubmitting(false);
+      setStage("picking");
     }
   }
 
@@ -177,9 +187,18 @@ function Onboarding() {
 
         <button type="submit" disabled={submitting}
           className="mt-2 w-full rounded-xl bg-[#FF6B35] py-3 text-sm font-bold text-white hover:bg-[#ff8c55] active:scale-[0.98] active:bg-[#e55a25] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-[0_4px_24px_rgba(255,107,53,0.40)]">
-          {submitting ? "Saving…" : "Generate my Week 1 plan →"}
+          {submitting ? "Saving…" : "Continue →"}
         </button>
       </form>
+
+      <StartDateModal
+        open={stage === "picking"}
+        onOpenChange={(v) => setStage(v ? "picking" : "form")}
+        onConfirm={handleStartDateConfirm}
+        title="When do you want to start?"
+        description="Day 1 of your Week 1 plan will be this date. Start today or pick a day in the next two weeks."
+        confirmLabel="Generate my Week 1 plan"
+      />
     </div>
   );
 }
