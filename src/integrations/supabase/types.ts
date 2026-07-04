@@ -371,6 +371,7 @@ export type Database = {
           title: string
           user_id: string
           week_id: string
+          workout_date: string | null
         }
         Insert: {
           completed_at?: string | null
@@ -382,6 +383,7 @@ export type Database = {
           title: string
           user_id: string
           week_id: string
+          workout_date?: string | null
         }
         Update: {
           completed_at?: string | null
@@ -393,6 +395,7 @@ export type Database = {
           title?: string
           user_id?: string
           week_id?: string
+          workout_date?: string | null
         }
         Relationships: [
           {
