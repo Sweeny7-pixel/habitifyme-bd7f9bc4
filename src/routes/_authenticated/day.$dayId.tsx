@@ -292,6 +292,7 @@ function ExerciseSheet({
   const [saving, setSaving] = useState(false);
   const [showInstr, setShowInstr] = useState(false);
   const [imgIdx, setImgIdx] = useState(0);
+  const [showLeavingConfirm, setShowLeavingConfirm] = useState(false);
 
   const images = exercise.images ?? [];
   const instructions: string[] = Array.isArray(exercise.instructions)
@@ -394,12 +395,46 @@ function openYouTube() {
 
         <button
             type="button"
-            onClick={openYouTube}
+            onClick={() => setShowLeavingConfirm(true)}
             className="glass-btn glass-btn-ghost glass-btn-sm w-full mb-3"
           >
             <Play className="h-3.5 w-3.5" /> Watch form video on YouTube
         </button>
 
+        {showLeavingConfirm && (
+          <div
+            className="glass-modal-overlay"
+            style={{ zIndex: 60 }}
+            onClick={() => setShowLeavingConfirm(false)}
+          >
+            <div className="glass-bottom-sheet" onClick={(e) => e.stopPropagation()}>
+              <p className="text-sm font-bold text-[var(--text-primary)] mb-1">
+                You are now leaving the app!
+              </p>
+              <p className="text-xs text-[var(--text-secondary)] mb-4">
+                This opens the form video on YouTube in a new tab. You'll stay here.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowLeavingConfirm(false)}
+                  className="glass-btn glass-btn-ghost flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    openYouTube();
+                    setShowLeavingConfirm(false);
+                  }}
+                  className="glass-btn flex-1"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {instructions.length > 0 && (
           <div className="mb-4 glass-card p-0 overflow-hidden">
             <button
