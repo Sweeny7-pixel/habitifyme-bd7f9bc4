@@ -116,3 +116,54 @@ export const getCheckinStreak = createServerFn({ method: "GET" })
 
     return { streak };
   });
+
+/**
+ * Awards diet-logging XP at most once per day (Asia/Kolkata calendar day).
+ * Idempotency enforced by unique index on xp_transactions(user_id, dedupe_key).
+ */
+export const logDietDay = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        weekId: z.string().uuid().optional(),
+        dayIndex: z.number().int().min(0).max(6).optional(),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const dayKey = todayIstKey();
+    const dedupeKey = `diet:${dayKey}`;
+
+    const result = await awardXPInternal(
+      supabase,
+      userId,
+      "DIET_LOGGING",
+      XP_RULES.DIET_LOGGING,
+      { source: "diet_log", day: dayKey },
+      dedupeKey,
+    );
+
+    return {
+      ok: true,
+      alreadyLogged: result.alreadyAwarded,
+      xpAwarded: result.xpAwarded,
+      bonusTriggered: result.bonusTriggered,
+    };
+  });
+
+/** Returns whether the user has already logged their diet today (IST). */
+export const getTodayDietLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const dayKey = todayIstKey();
+    const { data } = await supabase
+      .from("xp_transactions")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("dedupe_key", `diet:${dayKey}`)
+      .maybeSingle();
+    return { logged: !!data, day: dayKey };
+  });
