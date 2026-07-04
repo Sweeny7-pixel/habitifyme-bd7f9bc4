@@ -21,6 +21,7 @@ import { Route as AuthenticatedDietRouteImport } from './routes/_authenticated/d
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedReviewWeekIdRouteImport } from './routes/_authenticated/review.$weekId'
 import { Route as AuthenticatedDayDayIdRouteImport } from './routes/_authenticated/day.$dayId'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksSendWeeklyReviewRouteImport } from './routes/api/public/hooks/send-weekly-review'
 import { Route as ApiPublicHooksSendRecoveryPromptRouteImport } from './routes/api/public/hooks/send-recovery-prompt'
 import { Route as ApiPublicHooksSendDailyReminderRouteImport } from './routes/api/public/hooks/send-daily-reminder'
@@ -86,6 +87,12 @@ const AuthenticatedDayDayIdRoute = AuthenticatedDayDayIdRouteImport.update({
   path: '/day/$dayId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksSendWeeklyReviewRoute =
   ApiPublicHooksSendWeeklyReviewRouteImport.update({
     id: '/api/public/hooks/send-weekly-review',
@@ -127,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
   '/api/public/hooks/send-recovery-prompt': typeof ApiPublicHooksSendRecoveryPromptRoute
   '/api/public/hooks/send-weekly-review': typeof ApiPublicHooksSendWeeklyReviewRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -144,6 +152,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
   '/api/public/hooks/send-recovery-prompt': typeof ApiPublicHooksSendRecoveryPromptRoute
   '/api/public/hooks/send-weekly-review': typeof ApiPublicHooksSendWeeklyReviewRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -163,6 +172,7 @@ export interface FileRoutesById {
   '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
   '/api/public/hooks/send-recovery-prompt': typeof ApiPublicHooksSendRecoveryPromptRoute
   '/api/public/hooks/send-weekly-review': typeof ApiPublicHooksSendWeeklyReviewRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/send-daily-reminder'
     | '/api/public/hooks/send-recovery-prompt'
     | '/api/public/hooks/send-weekly-review'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/send-daily-reminder'
     | '/api/public/hooks/send-recovery-prompt'
     | '/api/public/hooks/send-weekly-review'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -217,6 +229,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/send-daily-reminder'
     | '/api/public/hooks/send-recovery-prompt'
     | '/api/public/hooks/send-weekly-review'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -228,6 +241,7 @@ export interface RootRouteChildren {
   ApiPublicHooksSendDailyReminderRoute: typeof ApiPublicHooksSendDailyReminderRoute
   ApiPublicHooksSendRecoveryPromptRoute: typeof ApiPublicHooksSendRecoveryPromptRoute
   ApiPublicHooksSendWeeklyReviewRoute: typeof ApiPublicHooksSendWeeklyReviewRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -316,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDayDayIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/send-weekly-review': {
       id: '/api/public/hooks/send-weekly-review'
       path: '/api/public/hooks/send-weekly-review'
@@ -382,17 +403,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksSendDailyReminderRoute: ApiPublicHooksSendDailyReminderRoute,
   ApiPublicHooksSendRecoveryPromptRoute: ApiPublicHooksSendRecoveryPromptRoute,
   ApiPublicHooksSendWeeklyReviewRoute: ApiPublicHooksSendWeeklyReviewRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
