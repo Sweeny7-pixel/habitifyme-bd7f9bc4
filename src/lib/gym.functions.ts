@@ -516,6 +516,16 @@ export const submitWeekReview = createServerFn({ method: "POST" })
       console.warn("[achievements] notify failed", err);
     }
 
+    try {
+      await awardXPInternal(supabase, userId, {
+        reason: "weekly_review",
+        dedupeKey: `week_review:${data.week_id}`,
+        metadata: { week_id: data.week_id, completion_pct },
+      });
+    } catch (err) {
+      console.warn("[xp] weekly_review award failed", err);
+    }
+
     return { ok: true, completion_pct };
   });
 
