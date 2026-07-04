@@ -5,6 +5,10 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   tanstackStart: {
@@ -18,6 +22,13 @@ export default defineConfig({
       port: 5000,
       strictPort: true,
       allowedHosts: true,
+    },
+    resolve: {
+      alias: {
+        // Shim the Node-only `ws` package to the Worker's global WebSocket.
+        // See src/shims/ws.ts for why.
+        ws: path.resolve(__dirname, "src/shims/ws.ts"),
+      },
     },
   },
 });
