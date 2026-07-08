@@ -1,71 +1,83 @@
-## Root cause (confirmed from the built bundle)
 
-Cloudflare Worker SSR crashes at module load with `TypeError: Class extends value [object Module] is not a constructor or null`. The culprit is the `ws` npm package, which the build bundles into the server worker at `dist/server/_libs/ws.mjs`.
+# Habitify Admin Dashboard (adapted)
 
-Inside that bundle:
+Add an admin-only reporting area to the existing HabitifyMe app under `/admin/*`. Read-only, adapts to current tables, uses TanStack Router (not React Router) and Recharts. Nothing about the existing user app changes.
 
-```js
-var EventEmitter$1 = __require("node:events");
-…
-var WebSocket = class WebSocket extends EventEmitter$1 { … }   // line 2089
+## 1. Auth & roles
+
+- New `app_role` enum (`admin`, `user`) + `user_roles` table with `has_role(uuid, app_role)` security-definer function (canonical Supabase pattern — roles stored separately from profiles to avoid privilege escalation).
+- Seed migration: create auth user `admin@habitify.com` / `Admin@12345` via `auth.admin`, insert `admin` role. Note: the user should rotate this password immediately after first login — a known password in git is a real risk.
+- `/admin/login` — email+password sign-in. After sign-in, verify `has_role(uid, 'admin')`; if not admin, sign out and show "Not authorized".
+- Routes live under `src/routes/_admin/` — a new pathless layout that runs a client-only `beforeLoad` calling `supabase.auth.getUser()` + admin-role check, redirecting to `/admin/login` otherwise. Independent from the existing `_authenticated` layout so the user app is unaffected.
+- Sidebar shows a "Log out" that clears the session and returns to `/admin/login`.
+
+## 2. Schema adaptation (no destructive changes)
+
+Reuse existing tables; no new `habits` table, no changes to existing columns.
+
+- Users list = `profiles` joined with `auth.users` (email) via a security-definer server function `admin_list_users()` — profiles has no email column, and we won't add one.
+- "Status active/inactive" = derived (checkin in last 14 days).
+- "Streak" = existing `streak` logic in `src/lib/streak.ts` (call per user).
+- "Habit score" = `habit_scores.score` + `habit_score_history` for the trend chart.
+- "Achievements" = `achievements` table (title/description/icon derived from `achievement_key` via existing `src/lib/achievements.ts` catalog; locked ones from catalog minus unlocked).
+- "Check-ins" = `checkins` table (no per-habit link exists — heatmap is per-day generic).
+- "Exercise logs" = `exercise_logs` (already has duration/reps/weight, no calories column — omit calories or show "—").
+- "Week reviews" = `week_reviews` joined with `weeks` for date range and `plan_summary`.
+- **New** stretch tables: `admin_notes` (user_id, author_id, note, created_at), `user_flags` (user_id, flagged_by, reason, resolved_at). Full RLS: only admins can read/write.
+- XP tracking: `xp_transactions` already exists — surface daily XP in the profile page.
+
+All queries go through server functions (`src/lib/admin.functions.ts`) using `requireSupabaseAuth` + an in-handler `has_role` check. No `supabaseAdmin` on the client graph.
+
+## 3. Routes
+
+```text
+src/routes/
+  _admin.tsx                  (pathless layout: role gate + AdminShell)
+  admin.login.tsx             (public)
+  _admin/admin.dashboard.tsx  → /admin/dashboard
+  _admin/admin.profile.$userId.tsx
+  _admin/admin.reports.tsx
 ```
 
-On real Node, `require('events')` returns the `EventEmitter` class itself. Under the Worker runtime's unenv shim, `__require("node:events")` returns the ES module namespace object (`[object Module]`) instead of the class. `class WebSocket extends <namespace>` throws the exact error we see, and it fires as soon as anything on the SSR path touches the `ws` module — which is every request to `/`, because the route tree pulls in Supabase.
+### /admin/dashboard
+KPI cards: total users, checkins this week, avg habit score, achievements unlocked (all-time). User grid with search + filter (active/inactive, score range). Row click → profile.
 
-Why `ws` is in the bundle at all: `src/integrations/supabase/auth-middleware.ts` and `src/integrations/supabase/client.server.ts` both do a top-level `import ws from 'ws'` and hand it to Supabase's `realtime.transport`. Those files are auto-generated and we're told not to edit them. Nothing in this app actually uses Supabase Realtime — the `ws` import only exists to satisfy the realtime option on Node hosts.
+### /admin/profile/:userId
+Tabs (anchored) to avoid endless scroll:
+1. **Header** — avatar (initials fallback, no `avatar_url` column), name, join date, current streak, habit score gauge, XP total.
+2. **Habit Score Trend** — Recharts line from `habit_score_history`, 30d / 90d toggle. Overlay daily XP from `xp_transactions`.
+3. **Achievements** — grid; unlocked from `achievements`, locked from catalog.
+4. **Check-ins** — GitHub-style heatmap (custom, no extra dep) + filterable table.
+5. **Exercise Logs** — table + weekly-minutes bar chart (sum of `sets_completed × reps`-based duration proxy, or just count of logs per week if duration isn't reliable).
+6. **Week Reviews** — expandable cards from `week_reviews` + `weeks`.
+7. **All Weeks' Exercises** — accordion grouped by `weeks.week_number`, sessions count + volume totals.
+8. **Admin Notes** / **Flag** — add note, toggle flag with reason.
 
-## Fix — alias `ws` to the Worker's native WebSocket
+### /admin/reports
+Sortable table across all users: habit score, streak, checkins per week, achievements count, flagged?.
 
-Cloudflare Workers already provide a global `WebSocket`. We keep the auto-generated integration files unchanged and stop the real `ws` package from being bundled by resolving `import 'ws'` to a tiny shim that exports the platform's WebSocket.
+## 4. UI
 
-### Step 1 — add the shim
+- Sidebar layout with shadcn `sidebar` primitives (Dashboard / Profiles / Reports / Logout).
+- Calm ops palette using existing design tokens; introduce an "admin" surface variant in `src/styles.css`. No hardcoded colors.
+- Recharts for line/bar/gauge; custom SVG for heatmap.
+- Loading skeletons + empty states per section.
+- Desktop-first, still responsive.
 
-Create `src/shims/ws.ts`:
+## 5. Data flow
 
-```ts
-// Cloudflare Workers and modern browsers expose WebSocket globally.
-// The real `ws` npm package extends Node's EventEmitter through a CJS
-// require that breaks under the Worker unenv shim ("Class extends value
-// [object Module]"). We only import `ws` to satisfy Supabase realtime's
-// transport option, and realtime is never used in this app.
-const WebSocketImpl = (globalThis as { WebSocket?: typeof WebSocket }).WebSocket;
+- Loader in each admin route calls `context.queryClient.ensureQueryData(...)` against the admin server fns; components use `useSuspenseQuery`.
+- Bearer attacher already registered in `src/start.ts`, so protected fns work.
+- Every admin server fn checks `has_role(userId, 'admin')` in-handler and returns 403 otherwise — defense in depth on top of the route gate.
 
-export default WebSocketImpl as unknown as typeof WebSocket;
-export { WebSocketImpl as WebSocket };
-```
+## 6. Tech notes for the user (plain terms)
 
-### Step 2 — alias `ws` in `vite.config.ts`
+- Your project runs on TanStack Router, not React Router — I'll use TanStack throughout; navigation and routing behave the same.
+- The existing tables don't have every field the spec listed (no `avatar_url`, no calories, no `habits` table, no email on profiles). I'll adapt: avatars become initials, email comes from the auth account, "habit" grouping is skipped where it doesn't exist. If you later want a full `habits` table + linked check-ins, that's a separate migration.
+- Seeding the admin password `Admin@12345` into a migration commits it to your repo history. Please change it right after first sign-in.
 
-Extend the config so both dev and Nitro/Worker builds resolve `ws` to the shim:
+## 7. Out of scope
 
-```ts
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import path from "node:path";
-
-export default defineConfig({
-  tanstackStart: { server: { entry: "server" } },
-  vite: {
-    server: { host: "0.0.0.0", port: 5000, strictPort: true, allowedHosts: true },
-    resolve: {
-      alias: {
-        ws: path.resolve(__dirname, "src/shims/ws.ts"),
-      },
-    },
-  },
-});
-```
-
-We do NOT set `ssr.external` or `resolve.external` (project rules forbid that for the Worker SSR environment). A path alias is safe.
-
-### Step 3 — verify
-
-- Run `bun run build`. Confirm `dist/server/_libs/ws.mjs` is gone (or a few bytes) and no chunk contains `class WebSocket extends EventEmitter$1`.
-- Reload preview `/`; it should render.
-- Republish. `https://habitifyme.lovable.app/` should stop returning 500 and worker logs should stop showing the `TypeError`.
-
-## Files touched
-
-- `src/shims/ws.ts` — new, ~10 lines.
-- `vite.config.ts` — add `resolve.alias` for `ws`.
-
-No changes to any auto-generated Supabase integration file, no dependency install/remove, no schema or feature changes.
+- No changes to the existing user-facing routes, home dashboard, onboarding, or workout flows.
+- No CRUD on user data (read-only + admin notes/flags only).
+- No new mock user seed data — the dashboard renders against real production data. If you want demo users, tell me and I'll add a seed migration.
