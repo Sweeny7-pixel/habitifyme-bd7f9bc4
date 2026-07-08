@@ -23,6 +23,7 @@ import { Route as AuthenticatedDietRouteImport } from './routes/_authenticated/d
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedReviewWeekIdRouteImport } from './routes/_authenticated/review.$weekId'
 import { Route as AuthenticatedDayDayIdRouteImport } from './routes/_authenticated/day.$dayId'
+import { Route as AdminAdminReportsRouteImport } from './routes/_admin/admin.reports'
 import { Route as AdminAdminDashboardRouteImport } from './routes/_admin/admin.dashboard'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksSendWeeklyReviewRouteImport } from './routes/api/public/hooks/send-weekly-review'
@@ -99,6 +100,11 @@ const AuthenticatedDayDayIdRoute = AuthenticatedDayDayIdRouteImport.update({
   path: '/day/$dayId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AdminAdminReportsRoute = AdminAdminReportsRouteImport.update({
+  id: '/admin/reports',
+  path: '/admin/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAdminDashboardRoute = AdminAdminDashboardRouteImport.update({
   id: '/admin/dashboard',
   path: '/admin/dashboard',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/progress': typeof AuthenticatedProgressRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/dashboard': typeof AdminAdminDashboardRoute
+  '/admin/reports': typeof AdminAdminReportsRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/progress': typeof AuthenticatedProgressRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/dashboard': typeof AdminAdminDashboardRoute
+  '/admin/reports': typeof AdminAdminReportsRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/_authenticated/progress': typeof AuthenticatedProgressRoute
   '/admin/login': typeof AdminLoginRoute
   '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute
+  '/_admin/admin/reports': typeof AdminAdminReportsRoute
   '/_authenticated/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/_authenticated/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
     | '/progress'
     | '/admin/login'
     | '/admin/dashboard'
+    | '/admin/reports'
     | '/day/$dayId'
     | '/review/$weekId'
     | '/api/public/hooks/recompute-habit-scores'
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/progress'
     | '/admin/login'
     | '/admin/dashboard'
+    | '/admin/reports'
     | '/day/$dayId'
     | '/review/$weekId'
     | '/api/public/hooks/recompute-habit-scores'
@@ -254,6 +265,7 @@ export interface FileRouteTypes {
     | '/_authenticated/progress'
     | '/admin/login'
     | '/_admin/admin/dashboard'
+    | '/_admin/admin/reports'
     | '/_authenticated/day/$dayId'
     | '/_authenticated/review/$weekId'
     | '/api/public/hooks/recompute-habit-scores'
@@ -377,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDayDayIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_admin/admin/reports': {
+      id: '/_admin/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminAdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/dashboard': {
       id: '/_admin/admin/dashboard'
       path: '/admin/dashboard'
@@ -449,10 +468,12 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface AdminRouteChildren {
   AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute
+  AdminAdminReportsRoute: typeof AdminAdminReportsRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminDashboardRoute: AdminAdminDashboardRoute,
+  AdminAdminReportsRoute: AdminAdminReportsRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
