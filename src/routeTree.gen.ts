@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -22,6 +23,7 @@ import { Route as AuthenticatedDietRouteImport } from './routes/_authenticated/d
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedReviewWeekIdRouteImport } from './routes/_authenticated/review.$weekId'
 import { Route as AuthenticatedDayDayIdRouteImport } from './routes/_authenticated/day.$dayId'
+import { Route as AdminAdminDashboardRouteImport } from './routes/_admin/admin.dashboard'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksSendWeeklyReviewRouteImport } from './routes/api/public/hooks/send-weekly-review'
 import { Route as ApiPublicHooksSendRecoveryPromptRouteImport } from './routes/api/public/hooks/send-recovery-prompt'
@@ -36,6 +38,10 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/_admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -93,6 +99,11 @@ const AuthenticatedDayDayIdRoute = AuthenticatedDayDayIdRouteImport.update({
   path: '/day/$dayId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AdminAdminDashboardRoute = AdminAdminDashboardRouteImport.update({
+  id: '/admin/dashboard',
+  path: '/admin/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -135,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/progress': typeof AuthenticatedProgressRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/dashboard': typeof AdminAdminDashboardRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
@@ -154,6 +166,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/progress': typeof AuthenticatedProgressRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/dashboard': typeof AdminAdminDashboardRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
@@ -166,6 +179,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
@@ -175,6 +189,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/progress': typeof AuthenticatedProgressRoute
   '/admin/login': typeof AdminLoginRoute
+  '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute
   '/_authenticated/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/_authenticated/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
@@ -196,6 +211,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/progress'
     | '/admin/login'
+    | '/admin/dashboard'
     | '/day/$dayId'
     | '/review/$weekId'
     | '/api/public/hooks/recompute-habit-scores'
@@ -215,6 +231,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/progress'
     | '/admin/login'
+    | '/admin/dashboard'
     | '/day/$dayId'
     | '/review/$weekId'
     | '/api/public/hooks/recompute-habit-scores'
@@ -226,6 +243,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_admin'
     | '/auth'
     | '/sitemap.xml'
     | '/_authenticated/calendar'
@@ -235,6 +253,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/progress'
     | '/admin/login'
+    | '/_admin/admin/dashboard'
     | '/_authenticated/day/$dayId'
     | '/_authenticated/review/$weekId'
     | '/api/public/hooks/recompute-habit-scores'
@@ -247,6 +266,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminLoginRoute: typeof AdminLoginRoute
@@ -271,6 +291,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_admin': {
+      id: '/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -350,6 +377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDayDayIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_admin/admin/dashboard': {
+      id: '/_admin/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminAdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -413,9 +447,20 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AdminRouteChildren {
+  AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminDashboardRoute: AdminAdminDashboardRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminLoginRoute: AdminLoginRoute,
