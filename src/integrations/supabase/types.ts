@@ -38,6 +38,30 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_notes: {
+        Row: {
+          author_id: string
+          created_at: string
+          id: string
+          note: string
+          user_id: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          id?: string
+          note: string
+          user_id: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          id?: string
+          note?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -394,6 +418,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_flags: {
+        Row: {
+          created_at: string
+          flagged_by: string
+          id: string
+          reason: string
+          resolved_at: string | null
+          resolved_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          flagged_by: string
+          id?: string
+          reason: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          flagged_by?: string
+          id?: string
+          reason?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       week_reviews: {
         Row: {
           completion_pct: number
@@ -562,6 +637,13 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -581,7 +663,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -708,6 +790,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
