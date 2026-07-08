@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AuthenticatedProgressRouteImport } from './routes/_authenticated/progress'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
@@ -21,11 +23,14 @@ import { Route as AuthenticatedDietRouteImport } from './routes/_authenticated/d
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedReviewWeekIdRouteImport } from './routes/_authenticated/review.$weekId'
 import { Route as AuthenticatedDayDayIdRouteImport } from './routes/_authenticated/day.$dayId'
+import { Route as AdminAdminReportsRouteImport } from './routes/_admin/admin.reports'
+import { Route as AdminAdminDashboardRouteImport } from './routes/_admin/admin.dashboard'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksSendWeeklyReviewRouteImport } from './routes/api/public/hooks/send-weekly-review'
 import { Route as ApiPublicHooksSendRecoveryPromptRouteImport } from './routes/api/public/hooks/send-recovery-prompt'
 import { Route as ApiPublicHooksSendDailyReminderRouteImport } from './routes/api/public/hooks/send-daily-reminder'
 import { Route as ApiPublicHooksRecomputeHabitScoresRouteImport } from './routes/api/public/hooks/recompute-habit-scores'
+import { Route as AdminAdminProfileUserIdRouteImport } from './routes/_admin/admin.profile.$userId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -37,6 +42,10 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/_admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -44,6 +53,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedProgressRoute = AuthenticatedProgressRouteImport.update({
@@ -87,6 +101,16 @@ const AuthenticatedDayDayIdRoute = AuthenticatedDayDayIdRouteImport.update({
   path: '/day/$dayId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AdminAdminReportsRoute = AdminAdminReportsRouteImport.update({
+  id: '/admin/reports',
+  path: '/admin/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminDashboardRoute = AdminAdminDashboardRouteImport.update({
+  id: '/admin/dashboard',
+  path: '/admin/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -117,6 +141,11 @@ const ApiPublicHooksRecomputeHabitScoresRoute =
     path: '/api/public/hooks/recompute-habit-scores',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminAdminProfileUserIdRoute = AdminAdminProfileUserIdRouteImport.update({
+  id: '/admin/profile/$userId',
+  path: '/admin/profile/$userId',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -128,8 +157,12 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/progress': typeof AuthenticatedProgressRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/dashboard': typeof AdminAdminDashboardRoute
+  '/admin/reports': typeof AdminAdminReportsRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
+  '/admin/profile/$userId': typeof AdminAdminProfileUserIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
   '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
   '/api/public/hooks/send-recovery-prompt': typeof ApiPublicHooksSendRecoveryPromptRoute
@@ -146,8 +179,12 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/progress': typeof AuthenticatedProgressRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/dashboard': typeof AdminAdminDashboardRoute
+  '/admin/reports': typeof AdminAdminReportsRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
+  '/admin/profile/$userId': typeof AdminAdminProfileUserIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
   '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
   '/api/public/hooks/send-recovery-prompt': typeof ApiPublicHooksSendRecoveryPromptRoute
@@ -158,6 +195,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
@@ -166,8 +204,12 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/progress': typeof AuthenticatedProgressRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute
+  '/_admin/admin/reports': typeof AdminAdminReportsRoute
   '/_authenticated/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/_authenticated/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
+  '/_admin/admin/profile/$userId': typeof AdminAdminProfileUserIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
   '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
   '/api/public/hooks/send-recovery-prompt': typeof ApiPublicHooksSendRecoveryPromptRoute
@@ -186,8 +228,12 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/progress'
+    | '/admin/login'
+    | '/admin/dashboard'
+    | '/admin/reports'
     | '/day/$dayId'
     | '/review/$weekId'
+    | '/admin/profile/$userId'
     | '/api/public/hooks/recompute-habit-scores'
     | '/api/public/hooks/send-daily-reminder'
     | '/api/public/hooks/send-recovery-prompt'
@@ -204,8 +250,12 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/progress'
+    | '/admin/login'
+    | '/admin/dashboard'
+    | '/admin/reports'
     | '/day/$dayId'
     | '/review/$weekId'
+    | '/admin/profile/$userId'
     | '/api/public/hooks/recompute-habit-scores'
     | '/api/public/hooks/send-daily-reminder'
     | '/api/public/hooks/send-recovery-prompt'
@@ -215,6 +265,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_admin'
     | '/auth'
     | '/sitemap.xml'
     | '/_authenticated/calendar'
@@ -223,8 +274,12 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/_authenticated/profile'
     | '/_authenticated/progress'
+    | '/admin/login'
+    | '/_admin/admin/dashboard'
+    | '/_admin/admin/reports'
     | '/_authenticated/day/$dayId'
     | '/_authenticated/review/$weekId'
+    | '/_admin/admin/profile/$userId'
     | '/api/public/hooks/recompute-habit-scores'
     | '/api/public/hooks/send-daily-reminder'
     | '/api/public/hooks/send-recovery-prompt'
@@ -235,8 +290,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AdminLoginRoute: typeof AdminLoginRoute
   ApiPublicHooksRecomputeHabitScoresRoute: typeof ApiPublicHooksRecomputeHabitScoresRoute
   ApiPublicHooksSendDailyReminderRoute: typeof ApiPublicHooksSendDailyReminderRoute
   ApiPublicHooksSendRecoveryPromptRoute: typeof ApiPublicHooksSendRecoveryPromptRoute
@@ -260,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_admin': {
+      id: '/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -272,6 +336,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/progress': {
@@ -330,6 +401,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDayDayIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_admin/admin/reports': {
+      id: '/_admin/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminAdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/dashboard': {
+      id: '/_admin/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminAdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -365,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRecomputeHabitScoresRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_admin/admin/profile/$userId': {
+      id: '/_admin/admin/profile/$userId'
+      path: '/admin/profile/$userId'
+      fullPath: '/admin/profile/$userId'
+      preLoaderRoute: typeof AdminAdminProfileUserIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -393,11 +485,27 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AdminRouteChildren {
+  AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute
+  AdminAdminReportsRoute: typeof AdminAdminReportsRoute
+  AdminAdminProfileUserIdRoute: typeof AdminAdminProfileUserIdRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminDashboardRoute: AdminAdminDashboardRoute,
+  AdminAdminReportsRoute: AdminAdminReportsRoute,
+  AdminAdminProfileUserIdRoute: AdminAdminProfileUserIdRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AdminLoginRoute: AdminLoginRoute,
   ApiPublicHooksRecomputeHabitScoresRoute:
     ApiPublicHooksRecomputeHabitScoresRoute,
   ApiPublicHooksSendDailyReminderRoute: ApiPublicHooksSendDailyReminderRoute,
@@ -408,13 +516,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
