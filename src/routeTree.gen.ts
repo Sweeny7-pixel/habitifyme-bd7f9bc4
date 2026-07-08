@@ -30,6 +30,7 @@ import { Route as ApiPublicHooksSendWeeklyReviewRouteImport } from './routes/api
 import { Route as ApiPublicHooksSendRecoveryPromptRouteImport } from './routes/api/public/hooks/send-recovery-prompt'
 import { Route as ApiPublicHooksSendDailyReminderRouteImport } from './routes/api/public/hooks/send-daily-reminder'
 import { Route as ApiPublicHooksRecomputeHabitScoresRouteImport } from './routes/api/public/hooks/recompute-habit-scores'
+import { Route as AdminAdminProfileUserIdRouteImport } from './routes/_admin/admin.profile.$userId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -140,6 +141,11 @@ const ApiPublicHooksRecomputeHabitScoresRoute =
     path: '/api/public/hooks/recompute-habit-scores',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminAdminProfileUserIdRoute = AdminAdminProfileUserIdRouteImport.update({
+  id: '/admin/profile/$userId',
+  path: '/admin/profile/$userId',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AdminAdminReportsRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
+  '/admin/profile/$userId': typeof AdminAdminProfileUserIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
   '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
   '/api/public/hooks/send-recovery-prompt': typeof ApiPublicHooksSendRecoveryPromptRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AdminAdminReportsRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
+  '/admin/profile/$userId': typeof AdminAdminProfileUserIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
   '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
   '/api/public/hooks/send-recovery-prompt': typeof ApiPublicHooksSendRecoveryPromptRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/_admin/admin/reports': typeof AdminAdminReportsRoute
   '/_authenticated/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/_authenticated/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
+  '/_admin/admin/profile/$userId': typeof AdminAdminProfileUserIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
   '/api/public/hooks/send-daily-reminder': typeof ApiPublicHooksSendDailyReminderRoute
   '/api/public/hooks/send-recovery-prompt': typeof ApiPublicHooksSendRecoveryPromptRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/day/$dayId'
     | '/review/$weekId'
+    | '/admin/profile/$userId'
     | '/api/public/hooks/recompute-habit-scores'
     | '/api/public/hooks/send-daily-reminder'
     | '/api/public/hooks/send-recovery-prompt'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/day/$dayId'
     | '/review/$weekId'
+    | '/admin/profile/$userId'
     | '/api/public/hooks/recompute-habit-scores'
     | '/api/public/hooks/send-daily-reminder'
     | '/api/public/hooks/send-recovery-prompt'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/reports'
     | '/_authenticated/day/$dayId'
     | '/_authenticated/review/$weekId'
+    | '/_admin/admin/profile/$userId'
     | '/api/public/hooks/recompute-habit-scores'
     | '/api/public/hooks/send-daily-reminder'
     | '/api/public/hooks/send-recovery-prompt'
@@ -438,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRecomputeHabitScoresRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_admin/admin/profile/$userId': {
+      id: '/_admin/admin/profile/$userId'
+      path: '/admin/profile/$userId'
+      fullPath: '/admin/profile/$userId'
+      preLoaderRoute: typeof AdminAdminProfileUserIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -469,11 +488,13 @@ const AuthenticatedRouteRouteWithChildren =
 interface AdminRouteChildren {
   AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute
   AdminAdminReportsRoute: typeof AdminAdminReportsRoute
+  AdminAdminProfileUserIdRoute: typeof AdminAdminProfileUserIdRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminDashboardRoute: AdminAdminDashboardRoute,
   AdminAdminReportsRoute: AdminAdminReportsRoute,
+  AdminAdminProfileUserIdRoute: AdminAdminProfileUserIdRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
