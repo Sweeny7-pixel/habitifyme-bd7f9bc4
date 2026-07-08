@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AuthenticatedProgressRouteImport } from './routes/_authenticated/progress'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
@@ -44,6 +45,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedProgressRoute = AuthenticatedProgressRouteImport.update({
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/progress': typeof AuthenticatedProgressRoute
+  '/admin/login': typeof AdminLoginRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/progress': typeof AuthenticatedProgressRoute
+  '/admin/login': typeof AdminLoginRoute
   '/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/progress': typeof AuthenticatedProgressRoute
+  '/admin/login': typeof AdminLoginRoute
   '/_authenticated/day/$dayId': typeof AuthenticatedDayDayIdRoute
   '/_authenticated/review/$weekId': typeof AuthenticatedReviewWeekIdRoute
   '/api/public/hooks/recompute-habit-scores': typeof ApiPublicHooksRecomputeHabitScoresRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/progress'
+    | '/admin/login'
     | '/day/$dayId'
     | '/review/$weekId'
     | '/api/public/hooks/recompute-habit-scores'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/progress'
+    | '/admin/login'
     | '/day/$dayId'
     | '/review/$weekId'
     | '/api/public/hooks/recompute-habit-scores'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/_authenticated/profile'
     | '/_authenticated/progress'
+    | '/admin/login'
     | '/_authenticated/day/$dayId'
     | '/_authenticated/review/$weekId'
     | '/api/public/hooks/recompute-habit-scores'
@@ -237,6 +249,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AdminLoginRoute: typeof AdminLoginRoute
   ApiPublicHooksRecomputeHabitScoresRoute: typeof ApiPublicHooksRecomputeHabitScoresRoute
   ApiPublicHooksSendDailyReminderRoute: typeof ApiPublicHooksSendDailyReminderRoute
   ApiPublicHooksSendRecoveryPromptRoute: typeof ApiPublicHooksSendRecoveryPromptRoute
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/progress': {
@@ -398,6 +418,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AdminLoginRoute: AdminLoginRoute,
   ApiPublicHooksRecomputeHabitScoresRoute:
     ApiPublicHooksRecomputeHabitScoresRoute,
   ApiPublicHooksSendDailyReminderRoute: ApiPublicHooksSendDailyReminderRoute,
